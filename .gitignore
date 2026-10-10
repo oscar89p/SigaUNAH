@@ -1,0 +1,36 @@
+# Dependencies
+node_modules/
+
+# Build and tooling output
+dist/
+coverage/
+.vite/
+
+# Local environment files (keep only sanitized examples)
+.env
+.env.*
+!.env.example
+
+# Logs and temporary files
+*.log
+*.tmp
+*.temp
+tmp/
+temp/
+
+# Local OS files
+.DS_Store
+
+# Credentials and secrets
+*.pem
+*.key
+*.p12
+*.pfx
+*.jks
+*.keystore
+*.secret
+*.secrets
+*.credential
+*.credentials
+credentials/
+secrets/

@@ -1,0 +1,4 @@
+import type { FastifyPluginAsync } from "fastify";
+import * as service from "./edificios.service.js";
+import { createSchema, idSchema, querySchema, stateSchema, updateSchema } from "./edificios.types.js";
+export const edificiosRoutes: FastifyPluginAsync = async (app) => { app.get("/api/v1/edificios", async r => service.list(querySchema.parse(r.query))); app.get("/api/v1/edificios/:id", async r => service.get(idSchema.parse(r.params).id)); app.post("/api/v1/edificios", async (r,reply) => reply.status(201).send(await service.create(createSchema.parse(r.body)))); app.put("/api/v1/edificios/:id", async r => service.update(idSchema.parse(r.params).id, updateSchema.parse(r.body))); app.patch("/api/v1/edificios/:id/estado", async r => service.state(idSchema.parse(r.params).id, stateSchema.parse(r.body))); };

@@ -1,0 +1,4 @@
+import type { FastifyPluginAsync } from "fastify";
+import * as service from "./tarjetas.service.js";
+import { createSchema,idSchema,querySchema,stateSchema,updateSchema } from "./tarjetas.types.js";
+export const tarjetasRoutes:FastifyPluginAsync=async(app)=>{app.get("/api/v1/tarjetas",async(request)=>service.list(querySchema.parse(request.query)));app.get("/api/v1/tarjetas/opciones",async()=>service.options());app.get("/api/v1/tarjetas/:id",async(request)=>service.get(idSchema.parse(request.params).id));app.post("/api/v1/tarjetas",async(request,reply)=>reply.status(201).send(await service.create(createSchema.parse(request.body))));app.put("/api/v1/tarjetas/:id",async(request)=>service.update(idSchema.parse(request.params).id,updateSchema.parse(request.body)));app.patch("/api/v1/tarjetas/:id/estado",async(request)=>service.state(idSchema.parse(request.params).id,stateSchema.parse(request.body)));};

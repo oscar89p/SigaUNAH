@@ -22,7 +22,7 @@ async function ingresar() {
   }
   loading.value = true;
   try {
-    session.login(await login(usuario.value, password.value));
+      session.login(await login(usuario.value, password.value));
     password.value = "";
     const redirect = typeof route.query.redirect === "string" && route.query.redirect.startsWith("/") ? route.query.redirect : "/";
     await router.replace(redirect);
@@ -45,7 +45,7 @@ async function ingresar() {
         <p v-if="error" class="login-error" role="alert">{{ error }}</p>
         <button type="submit" :disabled="loading">{{ loading ? "Iniciando sesión..." : "Iniciar sesión" }}</button>
       </form>
-      <p class="login-note">Acceso protegido · Entorno de demostración</p>
+      <p class="login-note">Acceso protegido · SIGA UNAH</p>
     </section>
   </main>
 </template>

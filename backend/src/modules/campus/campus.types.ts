@@ -7,6 +7,7 @@ export const campusQuerySchema = z.object({
   page: z.coerce.number().int().min(1).default(1),
   pageSize: z.coerce.number().int().min(1).max(100).default(10),
   search: z.string().trim().max(150).optional(),
+  estado: z.enum(["all", "active", "inactive"]).default("all"),
   sortBy: z.enum(["idCampus", "codigoCampus", "nombreCampus", "estadoCampus", "fechaRegistro"]).default("nombreCampus"),
   sortDirection: z.enum(["asc", "desc"]).default("asc")
 });

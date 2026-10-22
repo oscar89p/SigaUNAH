@@ -1,11 +1,12 @@
 import { get, patch, post, put } from "./http";
 import type { Campus, Paginated } from "@/types/access";
 
-export function listCampus(params: { page: number; pageSize: number; search: string; sortDirection: "asc" | "desc" }) {
+export function listCampus(params: { page: number; pageSize: number; search: string; estado: "all" | "active" | "inactive"; sortDirection: "asc" | "desc" }) {
   const query = new URLSearchParams({
     page: String(params.page),
     pageSize: String(params.pageSize),
     search: params.search,
+    estado: params.estado,
     sortDirection: params.sortDirection
   });
   return get<Paginated<Campus>>(`/api/v1/campus?${query}`);

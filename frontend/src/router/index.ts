@@ -10,7 +10,17 @@ import BeneficiariosView from "@/views/BeneficiariosView.vue";
 import SolicitudesView from "@/views/SolicitudesView.vue";
 import TarjetasView from "@/views/TarjetasView.vue";
 import LoginView from "@/views/LoginView.vue";
+import NotFoundView from "@/views/NotFoundView.vue";
+import UsersView from "@/views/UsersView.vue";
+import ProfilesView from "@/views/ProfilesView.vue";
+import ProfileConfigurationView from "@/views/ProfileConfigurationView.vue";
+import PermissionsView from "@/views/PermissionsView.vue";
+import NavigationAdminView from "@/views/NavigationAdminView.vue";
+import ConfigurationView from "@/views/ConfigurationView.vue";
+import AuditView from "@/views/AuditView.vue";
+import MonitoringView from "@/views/MonitoringView.vue";
 import { useAuthSession } from "@/composables/useAuthSession";
+import { useNavigation } from "@/composables/useNavigation";
 
 const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
@@ -21,25 +31,49 @@ const router = createRouter({
       component: AdminLayout,
       meta: { requiresAuth: true },
       children: [
-        { path: "", name: "dashboard", component: DashboardView },
+        { path: "", redirect: "/inicio" },
+        { path: "inicio", name: "dashboard", component: DashboardView },
         { path: "campus", name: "campus", component: CampusView },
         { path: "edificios", name: "edificios", component: BuildingsView },
         { path: "elevadores", name: "elevadores", component: ElevatorsView },
         { path: "dispositivos", name: "dispositivos", component: DevicesView },
         { path: "beneficiarios", name: "beneficiarios", component: BeneficiariosView },
         { path: "solicitudes", name: "solicitudes", component: SolicitudesView },
-        { path: "tarjetas", name: "tarjetas", component: TarjetasView }
+        { path: "tarjetas", name: "tarjetas", component: TarjetasView },
+        { path: "monitoreo", name: "monitoreo", component: MonitoringView, meta: { requiredPermission: "ACCESOS_HISTORIAL" } },
+        { path: "administracion/usuarios", name: "usuarios", component: UsersView },
+        { path: "administracion/perfiles", name: "perfiles", component: ProfilesView, meta: { requiredPermission: "PERFILES_ADMINISTRAR" } },
+        { path: "administracion/perfiles/:id/configuracion", name: "configuracion-perfil", component: ProfileConfigurationView, meta: { requiredPermission: "PERFILES_ADMINISTRAR" } },
+        { path: "administracion/permisos", name: "permisos", component: PermissionsView, meta: { requiredPermission: "PERMISOS_ADMINISTRAR" } },
+        { path: "administracion/navegaciones", name: "navegaciones", component: NavigationAdminView, meta: { requiredPermission: "NAVEGACION_ADMINISTRAR" } },
+        { path: "administracion/configuracion", name: "configuracion", component: ConfigurationView, meta: { requiredPermission: "CONFIGURACION_ADMINISTRAR" } },
+        { path: "administracion/auditoria", name: "auditoria", component: AuditView, meta: { requiredPermission: "AUDITORIA_CONSULTAR" } }
       ]
-    }
+    },
+    { path: "/:pathMatch(.*)*", name: "not-found", component: NotFoundView, meta: { requiresAuth: true } }
   ]
 });
 
-router.beforeEach((to) => {
+router.beforeEach(async (to) => {
   const session = useAuthSession();
-  session.restore();
+  const navigation = useNavigation();
+  await session.restore();
   if (to.meta.guestOnly && session.isAuthenticated.value) return "/";
   if (to.matched.some((record) => record.meta.requiresAuth) && !session.isAuthenticated.value) {
     return { path: "/login", query: { redirect: to.fullPath } };
+  }
+  if (to.matched.some((record) => record.meta.requiresAuth)) {
+    try { await navigation.load(); } catch { session.expire(); return { path: "/login", query: { redirect: to.fullPath } }; }
+    const requiredPermission = to.meta.requiredPermission;
+    if (typeof requiredPermission === "string" && !session.user.value?.permissions.includes(requiredPermission)) {
+      const first = navigation.flatItems.value.find((item) => item.enlaceNavegacion);
+      return first?.enlaceNavegacion && first.enlaceNavegacion !== to.path ? first.enlaceNavegacion : "/login";
+    }
+    if (typeof requiredPermission === "string") return;
+    if (!navigation.canAccess(to.path)) {
+      const first = navigation.flatItems.value.find((item) => item.enlaceNavegacion);
+      return first?.enlaceNavegacion && first.enlaceNavegacion !== to.path ? first.enlaceNavegacion : "/login";
+    }
   }
 });
 

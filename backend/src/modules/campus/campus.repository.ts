@@ -23,12 +23,20 @@ export async function listCampuses(query: CampusQuery) {
     .input("offset", sql.Int, (query.page - 1) * query.pageSize)
     .input("pageSize", sql.Int, query.pageSize);
   const countRequest = pool.request();
-  const where = query.search ? "WHERE codigoCampus LIKE @search OR nombreCampus LIKE @search" : "";
+  const predicates: string[] = [];
 
   if (query.search) {
+    predicates.push("(codigoCampus LIKE @search OR nombreCampus LIKE @search)");
     request.input("search", sql.NVarChar(150), `%${query.search}%`);
     countRequest.input("search", sql.NVarChar(150), `%${query.search}%`);
   }
+  if (query.estado !== "all") {
+    predicates.push("estadoCampus=@estado");
+    const active = query.estado === "active";
+    request.input("estado", sql.Bit, active);
+    countRequest.input("estado", sql.Bit, active);
+  }
+  const where = predicates.length ? `WHERE ${predicates.join(" AND ")}` : "";
 
   const sortColumn = sortColumns[query.sortBy];
   const direction = query.sortDirection === "desc" ? "DESC" : "ASC";

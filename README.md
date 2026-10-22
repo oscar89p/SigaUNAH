@@ -73,17 +73,17 @@ npm start
 | `DB_PASSWORD` | Contraseña de la base de datos. |
 | `DB_ENCRYPT` | Habilita el cifrado de la conexión (`true` o `false`). |
 | `DB_TRUST_SERVER_CERTIFICATE` | Permite confiar en un certificado local no verificable (`true` o `false`). |
-| `DEMO_USER` | Usuario de autenticación temporal para demostración. |
-| `DEMO_PASSWORD` | Contraseña de autenticación temporal; no debe versionarse. |
-| `DEMO_DISPLAY_NAME` | Nombre mostrado en la sesión del BackOffice. |
+| `AUTH_SESSION_COOKIE` | Nombre de la cookie de sesión. |
+| `AUTH_SESSION_IDLE_MINUTES` | Expiración por inactividad. Por defecto, 30 minutos. |
+| `AUTH_SESSION_MAX_HOURS` | Duración máxima absoluta. Por defecto, 8 horas. |
+| `AUTH_COOKIE_SECURE` | Exige cookies Secure. Debe ser `true` en producción. |
+| `AUTH_ALLOWED_ORIGINS` | Orígenes CORS autorizados separados por coma. |
 
 `DB_SERVER`, `DB_DATABASE`, `DB_USER` y `DB_PASSWORD` son obligatorias. `DB_PORT`, `DB_ENCRYPT` y `DB_TRUST_SERVER_CERTIFICATE` usan respectivamente `1433`, `true` y `false` cuando se omiten. No se deben guardar credenciales reales en el repositorio.
 
-### Autenticación temporal de demostración
+### Autenticación y sesiones
 
-El BackOffice incluye autenticación temporal para entorno de demostración/desarrollo. El endpoint `POST /api/v1/auth/login` valida las variables `DEMO_USER`, `DEMO_PASSWORD` y `DEMO_DISPLAY_NAME`, sin consultar la base de datos ni devolver la contraseña. La sesión mínima del frontend se conserva en `sessionStorage`, con protección de rutas y logout.
-
-Esta autenticación temporal no es una solución de producción. JWT, OAuth, LDAP, MFA, recuperación de contraseña y permisos reales quedan pendientes para una implementación posterior.
+El endpoint `POST /api/v1/auth/login` valida usuarios locales de `Seguridad.tblUsuarios` mediante Argon2id y crea sesiones persistentes en `Seguridad.tblSesionesUsuarios`. El frontend utiliza cookies HttpOnly y protección CSRF; no guarda la sesión en `sessionStorage`. La matriz RBAC y el procedimiento del primer administrador están documentados en `docs/autenticacion-rbac.md`.
 
 ### Conexión a SQL Server
 

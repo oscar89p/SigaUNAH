@@ -1,5 +1,5 @@
 <script setup lang="ts">
-defineProps<{ eyebrow: string; title: string; description: string; actionLabel: string }>();
+defineProps<{ eyebrow: string; title: string; description: string; actionLabel?: string }>();
 const emit = defineEmits<{ action: [] }>();
 </script>
 
@@ -10,6 +10,6 @@ const emit = defineEmits<{ action: [] }>();
       <h1>{{ title }}</h1>
       <p>{{ description }}</p>
     </div>
-    <button class="bo-btn bo-btn-accent" type="button" @click="emit('action')">+ {{ actionLabel }}</button>
+    <button v-if="actionLabel" class="bo-btn bo-btn-accent" type="button" @click="emit('action')">+ {{ actionLabel }}</button>
   </div>
 </template>

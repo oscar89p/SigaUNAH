@@ -24,14 +24,16 @@ const fields = z.object({
   fechaFinSolicitada: date,
   motivoSolicitud: z.string().trim().max(1500).nullable().optional(),
   origenSolicitud: z.string().trim().min(1).max(30)
-}).superRefine((value, context) => {
+});
+
+function validateDateRange(value: { fechaInicioSolicitada?: Date | null; fechaFinSolicitada?: Date | null }, context: z.RefinementCtx) {
   if (value.fechaInicioSolicitada && value.fechaFinSolicitada && value.fechaFinSolicitada < value.fechaInicioSolicitada) {
     context.addIssue({ code: "custom", path: ["fechaFinSolicitada"], message: "La fecha final no puede ser anterior a la fecha inicial" });
   }
-});
+}
 
-export const createSchema = fields.extend({ usuarioRegistro: user });
-export const updateSchema = fields.extend({ usuarioActualizacion: user });
+export const createSchema = fields.extend({ usuarioRegistro: user }).superRefine(validateDateRange);
+export const updateSchema = fields.omit({ idEstadoSolicitud: true }).extend({ usuarioActualizacion: user }).superRefine(validateDateRange);
 export const stateSchema = z.object({ idEstadoSolicitudNuevo: z.number().int().positive(), motivoCambio: z.string().trim().max(1000).nullable().optional(), usuarioRegistro: user, usuarioActualizacion: user });
 export type Query = z.infer<typeof querySchema>;
 export type Create = z.infer<typeof createSchema>;

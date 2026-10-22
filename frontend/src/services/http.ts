@@ -1,3 +1,5 @@
+import { getCsrfToken } from "@/services/csrf";
+
 const apiBaseUrl = (import.meta.env.VITE_API_BASE_URL ?? "http://localhost:3000").replace(/\/$/, "");
 
 export class ApiError extends Error {
@@ -9,6 +11,7 @@ export class ApiError extends Error {
 async function request<T>(path: string, init?: RequestInit): Promise<T> {
   const response = await fetch(`${apiBaseUrl}${path}`, {
     ...init,
+    credentials: "include",
     headers: { "Content-Type": "application/json", ...init?.headers }
   });
 
@@ -22,11 +25,16 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
 
 export function get<T>(path: string): Promise<T> { return request<T>(path); }
 export function post<T>(path: string, body: unknown): Promise<T> {
-  return request<T>(path, { method: "POST", body: JSON.stringify(body) });
+  return request<T>(path, { method: "POST", body: JSON.stringify(body), headers: csrfHeaders() });
 }
 export function put<T>(path: string, body: unknown): Promise<T> {
-  return request<T>(path, { method: "PUT", body: JSON.stringify(body) });
+  return request<T>(path, { method: "PUT", body: JSON.stringify(body), headers: csrfHeaders() });
 }
 export function patch<T>(path: string, body: unknown): Promise<T> {
-  return request<T>(path, { method: "PATCH", body: JSON.stringify(body) });
+  return request<T>(path, { method: "PATCH", body: JSON.stringify(body), headers: csrfHeaders() });
+}
+
+function csrfHeaders(): Record<string, string> {
+  const token = getCsrfToken();
+  return token ? { "X-CSRF-Token": token } : {};
 }

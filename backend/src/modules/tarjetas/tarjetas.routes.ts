@@ -1,4 +1,20 @@
 import type { FastifyPluginAsync } from "fastify";
 import * as service from "./tarjetas.service.js";
-import { createSchema,idSchema,querySchema,stateSchema,updateSchema } from "./tarjetas.types.js";
-export const tarjetasRoutes:FastifyPluginAsync=async(app)=>{app.get("/api/v1/tarjetas",async(request)=>service.list(querySchema.parse(request.query)));app.get("/api/v1/tarjetas/opciones",async()=>service.options());app.get("/api/v1/tarjetas/:id",async(request)=>service.get(idSchema.parse(request.params).id));app.post("/api/v1/tarjetas",async(request,reply)=>reply.status(201).send(await service.create(createSchema.parse(request.body))));app.put("/api/v1/tarjetas/:id",async(request)=>service.update(idSchema.parse(request.params).id,updateSchema.parse(request.body)));app.patch("/api/v1/tarjetas/:id/estado",async(request)=>service.state(idSchema.parse(request.params).id,stateSchema.parse(request.body)));};
+import { assignmentQuerySchema,createAssignmentSchema,createSchema,idSchema,querySchema,renewAssignmentSchema,replaceAssignmentSchema,returnAssignmentSchema,stateSchema,updateSchema } from "./tarjetas.types.js";
+import type { AuthenticatedRequest } from "../auth/auth-context.js";
+export const tarjetasRoutes:FastifyPluginAsync=async(app)=>{
+  app.get("/api/v1/tarjetas",async(request)=>service.list(querySchema.parse(request.query)));
+  app.get("/api/v1/tarjetas/opciones",async()=>service.options());
+  app.get("/api/v1/tarjetas/disponibles",async()=>service.available());
+  app.get("/api/v1/tarjetas/disponibles/diagnostico",async()=>service.availabilityDiagnostics());
+  app.get("/api/v1/tarjetas/acceso-opciones",async()=>service.accessOptions());
+  app.get("/api/v1/tarjetas/asignaciones",async(request)=>service.assignments(assignmentQuerySchema.parse(request.query)));
+  app.get("/api/v1/tarjetas/:id",async(request)=>service.get(idSchema.parse(request.params).id));
+  app.post("/api/v1/tarjetas/asignaciones",async(request,reply)=>reply.status(201).send(await service.assign(createAssignmentSchema.parse(request.body),(request as AuthenticatedRequest).auth)));
+  app.patch("/api/v1/tarjetas/asignaciones/:id/devolucion",async(request)=>service.returnAssignment(idSchema.parse(request.params).id,returnAssignmentSchema.parse(request.body),(request as AuthenticatedRequest).auth));
+  app.post("/api/v1/tarjetas/asignaciones/:id/renovacion",async(request)=>service.renewAssignment(idSchema.parse(request.params).id,renewAssignmentSchema.parse(request.body),(request as AuthenticatedRequest).auth));
+  app.post("/api/v1/tarjetas/asignaciones/:id/reemplazo",async(request)=>service.replaceAssignment(idSchema.parse(request.params).id,replaceAssignmentSchema.parse(request.body),(request as AuthenticatedRequest).auth));
+  app.post("/api/v1/tarjetas",async(request,reply)=>reply.status(201).send(await service.create(createSchema.parse(request.body),(request as AuthenticatedRequest).auth)));
+  app.put("/api/v1/tarjetas/:id",async(request)=>service.update(idSchema.parse(request.params).id,updateSchema.parse(request.body)));
+  app.patch("/api/v1/tarjetas/:id/estado",async(request)=>service.state(idSchema.parse(request.params).id,stateSchema.parse(request.body)));
+};

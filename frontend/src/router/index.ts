@@ -19,8 +19,12 @@ import ProfileConfigurationView from "@/views/ProfileConfigurationView.vue";
 import PermissionsView from "@/views/PermissionsView.vue";
 import NavigationAdminView from "@/views/NavigationAdminView.vue";
 import ConfigurationView from "@/views/ConfigurationView.vue";
+import CatalogsView from "@/views/CatalogsView.vue";
 import AuditView from "@/views/AuditView.vue";
 import MonitoringView from "@/views/MonitoringView.vue";
+import ReportsView from "@/views/ReportsView.vue";
+import MyInformationView from "@/views/MyInformationView.vue";
+import MyCardView from "@/views/MyCardView.vue";
 import { useAuthSession } from "@/composables/useAuthSession";
 import { useNavigation } from "@/composables/useNavigation";
 
@@ -44,12 +48,16 @@ const router = createRouter({
         { path: "tarjetas", name: "tarjetas", component: TarjetasView },
         { path: "tarjetas/:id/gestionar", name: "gestionar-tarjeta", component: GestionTarjetaView, meta: { navigationPath: "/tarjetas" } },
         { path: "monitoreo", name: "monitoreo", component: MonitoringView, meta: { requiredPermission: "ACCESOS_HISTORIAL" } },
+        { path: "reportes", name: "reportes", component: ReportsView, meta: { requiredPermission: "REPORTES_CONSULTAR" } },
+        { path: "mi-cuenta/informacion", name: "mi-informacion", component: MyInformationView },
+        { path: "mi-cuenta/tarjeta", name: "mi-tarjeta", component: MyCardView },
         { path: "administracion/usuarios", name: "usuarios", component: UsersView },
         { path: "administracion/perfiles", name: "perfiles", component: ProfilesView, meta: { requiredPermission: "PERFILES_ADMINISTRAR" } },
         { path: "administracion/perfiles/:id/configuracion", name: "configuracion-perfil", component: ProfileConfigurationView, meta: { requiredPermission: "PERFILES_ADMINISTRAR" } },
         { path: "administracion/permisos", name: "permisos", component: PermissionsView, meta: { requiredPermission: "PERMISOS_ADMINISTRAR" } },
         { path: "administracion/navegaciones", name: "navegaciones", component: NavigationAdminView, meta: { requiredPermission: "NAVEGACION_ADMINISTRAR" } },
         { path: "administracion/configuracion", name: "configuracion", component: ConfigurationView, meta: { requiredPermission: "CONFIGURACION_ADMINISTRAR" } },
+        { path: "administracion/configuracion/catalogos", name: "catalogos", component: CatalogsView, meta: { requiredPermission: "CONFIGURACION_ADMINISTRAR" } },
         { path: "administracion/auditoria", name: "auditoria", component: AuditView, meta: { requiredPermission: "AUDITORIA_CONSULTAR" } }
       ]
     },

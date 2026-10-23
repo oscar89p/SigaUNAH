@@ -22,6 +22,7 @@ import { navegacionRoutes } from "./modules/seguridad/navegacion.routes.js";
 import { usuariosRoutes } from "./modules/seguridad/usuarios.routes.js";
 import { administracionRoutes } from "./modules/seguridad/administracion.routes.js";
 import { monitoreoRoutes } from "./modules/operaciones/monitoreo.routes.js";
+import { reportesRoutes } from "./modules/reportes/reportes.routes.js";
 import { stringifyJsonSafe } from "./shared/serialization/json.js";
 
 const app = Fastify({ logger: true });
@@ -89,6 +90,7 @@ await app.register(navegacionRoutes);
 await app.register(usuariosRoutes);
 await app.register(administracionRoutes);
 await app.register(monitoreoRoutes);
+await app.register(reportesRoutes);
 
 app.addHook("onClose", async () => {
   await closeDatabasePool();

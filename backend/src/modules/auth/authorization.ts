@@ -2,7 +2,7 @@
 export const permissionCatalogCodes = [
   "BENEFICIARIOS_CONSULTAR", "BENEFICIARIOS_REGISTRAR", "BENEFICIARIOS_VALIDAR", "BENEFICIARIOS_MODIFICAR",
   "TARJETAS_CONSULTAR", "TARJETAS_ACTIVAR", "TARJETAS_ASIGNAR", "TARJETAS_DESACTIVAR", "TARJETAS_RENOVAR", "ACCESOS_CONSULTAR", "ACCESOS_HISTORIAL",
-  "USUARIOS_ADMINISTRAR", "PERFILES_ADMINISTRAR", "PERMISOS_ADMINISTRAR", "CONFIGURACION_ADMINISTRAR", "AUDITORIA_CONSULTAR"
+  "USUARIOS_ADMINISTRAR", "PERFILES_ADMINISTRAR", "PERMISOS_ADMINISTRAR", "CONFIGURACION_ADMINISTRAR", "AUDITORIA_CONSULTAR", "REPORTES_CONSULTAR", "REPORTES_EXPORTAR"
 ] as const;
 
 /** Codes bound to implemented handlers. Several P1 write codes are proposed but not yet provisioned in SQL. */
@@ -31,6 +31,8 @@ export function permissionFor(url: string, method: string): string | null {
           : method === "PATCH" ? "SOLICITUDES_GESTIONAR" : null;
   }
   if (isResource(path, "/api/v1/operaciones/monitoreo")) return method === "GET" ? "ACCESOS_HISTORIAL" : null;
+  if (path === "/api/v1/reportes/exportar") return method === "GET" ? "REPORTES_EXPORTAR" : null;
+  if (isResource(path, "/api/v1/reportes")) return method === "GET" ? "REPORTES_CONSULTAR" : null;
   if (isResource(path, "/api/v1/beneficiarios")) {
     return method === "GET" ? "BENEFICIARIOS_CONSULTAR"
       : method === "POST" ? "BENEFICIARIOS_REGISTRAR"
@@ -48,7 +50,7 @@ export function permissionFor(url: string, method: string): string | null {
   if (isResource(path, "/api/v1/seguridad/admin/perfiles")) return isAdminMethod(method) ? "PERFILES_ADMINISTRAR" : null;
   if (isResource(path, "/api/v1/seguridad/admin/permisos")) return isAdminMethod(method) ? "PERMISOS_ADMINISTRAR" : null;
   if (isResource(path, "/api/v1/seguridad/admin/navegaciones")) return isAdminMethod(method) ? "NAVEGACION_ADMINISTRAR" : null;
-  if (isResource(path, "/api/v1/seguridad/admin/configuracion")) return method === "GET" || method === "PUT" ? "CONFIGURACION_ADMINISTRAR" : null;
+  if (isResource(path, "/api/v1/seguridad/admin/configuracion")) return ["GET", "POST", "PUT", "PATCH"].includes(method) ? "CONFIGURACION_ADMINISTRAR" : null;
   if (isResource(path, "/api/v1/seguridad/admin/auditoria")) return method === "GET" ? "AUDITORIA_CONSULTAR" : null;
   if (isResource(path, "/api/v1/seguridad/usuarios") || isResource(path, "/api/v1/seguridad/perfiles")) {
     return method === "GET" || method === "POST" || method === "PUT" || method === "PATCH"
@@ -68,7 +70,7 @@ function isAdminMethod(method: string): boolean {
 /** These auth endpoints validate their session and (for writes) CSRF in their own handlers. */
 export function isAuthManagedRequest(url: string, method: string): boolean {
   const path = url.split("?", 1)[0] ?? "";
-  return (path === "/api/v1/auth/logout" && method === "POST") || (path === "/api/v1/auth/me" && method === "GET");
+  return (path === "/api/v1/auth/logout" && method === "POST") || (path === "/api/v1/auth/me" && method === "GET") || (path === "/api/v1/usuarios/mi-informacion" && method === "GET");
 }
 
 function isResource(path: string, resource: string): boolean {

@@ -20,6 +20,7 @@ const accessFrom = `
   LEFT JOIN Beneficiarios.tblPersonas p ON p.idPersona=b.idPersona
   LEFT JOIN Accesos.tblDispositivos d ON d.idDispositivo=r.idDispositivo
   LEFT JOIN Accesos.tblElevadores e ON e.idElevador=r.idElevador`;
+const accessSelect = `r.idRegistroAcceso,r.fechaHoraAcceso,r.resultadoAcceso,r.codigoResultado,r.direccionMovimiento,r.pisoOrigen,r.pisoDestino,r.origenRegistro,r.idTarjeta,t.codigoTarjeta,r.idBeneficiario,CONCAT(p.primerNombre,N' ',p.primerApellido) AS nombreBeneficiario,r.idDispositivo,d.codigoDispositivo,d.nombreDispositivo,r.idElevador,e.codigoElevador,e.nombreElevador`;
 
 function bindAccessFilters(request: sql.Request, query: AccessQuery) {
   const clauses = addRange(request, query, "r.fechaHoraAcceso");
@@ -38,9 +39,11 @@ export async function listAccessEvents(query: AccessQuery) {
   const pool = await getDatabasePool();
   const request = pool.request(); const countRequest = pool.request();
   const where = bindAccessFilters(request, query); bindAccessFilters(countRequest, query);
-  request.input("offset", sql.Int, (query.page - 1) * query.pageSize).input("pageSize", sql.Int, query.pageSize);
+  const offset = (query.page - 1) * query.pageSize;
+  request.input("offset", sql.Int, offset).input("pageEnd", sql.Int, offset + query.pageSize);
+  const direction = query.sortDirection === "asc" ? "ASC" : "DESC";
   const [data, count] = await Promise.all([
-    request.query(`SELECT r.idRegistroAcceso,r.fechaHoraAcceso,r.resultadoAcceso,r.codigoResultado,r.direccionMovimiento,r.pisoOrigen,r.pisoDestino,r.origenRegistro,r.idTarjeta,t.codigoTarjeta,r.idBeneficiario,CONCAT(p.primerNombre,N' ',p.primerApellido) AS nombreBeneficiario,r.idDispositivo,d.codigoDispositivo,d.nombreDispositivo,r.idElevador,e.codigoElevador,e.nombreElevador ${accessFrom} ${where} ORDER BY r.fechaHoraAcceso DESC,r.idRegistroAcceso DESC OFFSET @offset ROWS FETCH NEXT @pageSize ROWS ONLY`),
+    request.query(`SELECT * FROM (SELECT ${accessSelect},ROW_NUMBER() OVER (ORDER BY r.fechaHoraAcceso ${direction},r.idRegistroAcceso ${direction}) AS numeroFila ${accessFrom} ${where}) eventos WHERE numeroFila>@offset AND numeroFila<=@pageEnd ORDER BY numeroFila`),
     countRequest.query<{ total: number }>(`SELECT COUNT(1) AS total ${accessFrom} ${where}`)
   ]);
   return page(data.recordset, count.recordset[0]?.total ?? 0, query);
@@ -52,6 +55,7 @@ const incidentFrom = `
   LEFT JOIN Beneficiarios.tblBeneficiarios b ON b.idBeneficiario=i.idBeneficiario
   LEFT JOIN Beneficiarios.tblPersonas p ON p.idPersona=b.idPersona
   LEFT JOIN Accesos.tblDispositivos d ON d.idDispositivo=i.idDispositivo`;
+const incidentSelect = `i.idIncidenteAcceso,i.codigoIncidenteAcceso,i.tipoIncidenteAcceso,i.descripcionIncidenteAcceso,i.nivelSeveridadIncidenteAcceso,i.fechaIncidenteAcceso,i.fechaResolucionIncidenteAcceso,i.resueltoIncidenteAcceso,i.resolucionIncidenteAcceso,i.idRegistroAcceso,i.idTarjeta,t.codigoTarjeta,i.idBeneficiario,CONCAT(p.primerNombre,N' ',p.primerApellido) AS nombreBeneficiario,i.idDispositivo,d.codigoDispositivo,d.nombreDispositivo`;
 
 function bindIncidentFilters(request: sql.Request, query: IncidentQuery) {
   const clauses = addRange(request, query, "i.fechaIncidenteAcceso");
@@ -68,9 +72,11 @@ export async function listIncidents(query: IncidentQuery) {
   const pool = await getDatabasePool();
   const request = pool.request(); const countRequest = pool.request();
   const where = bindIncidentFilters(request, query); bindIncidentFilters(countRequest, query);
-  request.input("offset", sql.Int, (query.page - 1) * query.pageSize).input("pageSize", sql.Int, query.pageSize);
+  const offset = (query.page - 1) * query.pageSize;
+  request.input("offset", sql.Int, offset).input("pageEnd", sql.Int, offset + query.pageSize);
+  const direction = query.sortDirection === "asc" ? "ASC" : "DESC";
   const [data, count] = await Promise.all([
-    request.query(`SELECT i.idIncidenteAcceso,i.codigoIncidenteAcceso,i.tipoIncidenteAcceso,i.descripcionIncidenteAcceso,i.nivelSeveridadIncidenteAcceso,i.fechaIncidenteAcceso,i.fechaResolucionIncidenteAcceso,i.resueltoIncidenteAcceso,i.resolucionIncidenteAcceso,i.idRegistroAcceso,i.idTarjeta,t.codigoTarjeta,i.idBeneficiario,CONCAT(p.primerNombre,N' ',p.primerApellido) AS nombreBeneficiario,i.idDispositivo,d.codigoDispositivo,d.nombreDispositivo FROM Operaciones.tblIncidentesAcceso i LEFT JOIN Tarjetas.tblTarjetas t ON t.idTarjeta=i.idTarjeta LEFT JOIN Beneficiarios.tblBeneficiarios b ON b.idBeneficiario=i.idBeneficiario LEFT JOIN Beneficiarios.tblPersonas p ON p.idPersona=b.idPersona LEFT JOIN Accesos.tblDispositivos d ON d.idDispositivo=i.idDispositivo ${where} ORDER BY i.fechaIncidenteAcceso DESC,i.idIncidenteAcceso DESC OFFSET @offset ROWS FETCH NEXT @pageSize ROWS ONLY`),
+    request.query(`SELECT * FROM (SELECT ${incidentSelect},ROW_NUMBER() OVER (ORDER BY i.fechaIncidenteAcceso ${direction},i.idIncidenteAcceso ${direction}) AS numeroFila ${incidentFrom} ${where}) incidentes WHERE numeroFila>@offset AND numeroFila<=@pageEnd ORDER BY numeroFila`),
     countRequest.query<{ total: number }>(`SELECT COUNT(1) AS total ${incidentFrom} ${where}`)
   ]);
   return page(data.recordset, count.recordset[0]?.total ?? 0, query);

@@ -26,6 +26,9 @@ describe("auth policies", () => {
     expect(permissionFor("/api/v1/solicitudes/1/estado", "PATCH")).toBe("SOLICITUDES_GESTIONAR");
     expect(permissionFor("/api/v1/operaciones/monitoreo/accesos", "GET")).toBe("ACCESOS_HISTORIAL");
     expect(permissionFor("/api/v1/operaciones/monitoreo/incidentes", "POST")).toBeNull();
+    expect(permissionFor("/api/v1/reportes/resumen", "GET")).toBe("REPORTES_CONSULTAR");
+    expect(permissionFor("/api/v1/reportes/opciones", "GET")).toBe("REPORTES_CONSULTAR");
+    expect(permissionFor("/api/v1/reportes/exportar", "GET")).toBe("REPORTES_EXPORTAR");
     expect(permissionFor("/api/v1/inexistente", "GET")).toBeNull();
     expect(permissionFor("/api/v1/beneficiarios", "GET")).toBe("BENEFICIARIOS_CONSULTAR");
   });
@@ -54,6 +57,8 @@ describe("auth policies", () => {
     expect(permissionFor("/api/v1/seguridad/admin/permisos", "GET")).toBe("PERMISOS_ADMINISTRAR");
     expect(permissionFor("/api/v1/seguridad/admin/navegaciones", "POST")).toBe("NAVEGACION_ADMINISTRAR");
     expect(permissionFor("/api/v1/seguridad/admin/configuracion", "GET")).toBe("CONFIGURACION_ADMINISTRAR");
+    expect(permissionFor("/api/v1/seguridad/admin/configuracion/catalogos", "POST")).toBe("CONFIGURACION_ADMINISTRAR");
+    expect(permissionFor("/api/v1/seguridad/admin/configuracion/catalogos/1/estado", "PATCH")).toBe("CONFIGURACION_ADMINISTRAR");
     expect(permissionFor("/api/v1/seguridad/admin/auditoria", "GET")).toBe("AUDITORIA_CONSULTAR");
     expect(permissionFor("/api/v1/seguridad/admin/auditoria", "PUT")).toBeNull();
     expect(permissionFor("/api/v1/seguridad/admin/perfiles", "DELETE")).toBeNull();
@@ -63,6 +68,7 @@ describe("auth policies", () => {
     expect(isAuthManagedRequest("/api/v1/auth/logout", "POST")).toBe(true);
     expect(isAuthManagedRequest("/api/v1/auth/logout?source=menu", "POST")).toBe(true);
     expect(isAuthManagedRequest("/api/v1/auth/me", "GET")).toBe(true);
+    expect(isAuthManagedRequest("/api/v1/usuarios/mi-informacion", "GET")).toBe(true);
     expect(isAuthManagedRequest("/api/v1/auth/logout", "GET")).toBe(false);
     expect(isAuthManagedRequest("/api/v1/auth/me", "POST")).toBe(false);
     expect(permissionFor("/api/v1/auth/logout", "POST")).toBeNull();

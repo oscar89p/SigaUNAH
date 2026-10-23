@@ -9,6 +9,7 @@ export interface User {
   usuarioActualizacion: string | null; fechaActualizacion: string | null; perfiles: Profile[];
 }
 export interface UserPayload { nombreUsuario: string; correoElectronico: string; nombreAcceso: string; identificadorInstitucional: string | null; profileIds: number[]; password?: string; }
+export interface PersonalInformation { nombreUsuario: string; correoElectronico: string; nombreAcceso: string; identificadorInstitucional: string | null; tipoAutenticacion: string; estadoUsuario: boolean; ultimoAcceso: string | null; }
 const pageSize = 10;
 function query(search: string, page: number, estado: string) { return new URLSearchParams({ page: String(page), pageSize: String(pageSize), search, estado, sortBy: "nombreUsuario", sortDirection: "asc" }).toString(); }
 
@@ -31,6 +32,7 @@ export async function listUsers(search: string, page = 1, estado = "all"): Promi
   return { items: response.items, pagination };
 }
 export const getUser = (id: number | string) => get<User>(`/api/v1/seguridad/usuarios/${id}`);
+export const getMyInformation = () => get<PersonalInformation>("/api/v1/usuarios/mi-informacion");
 export const listProfiles = () => get<Profile[]>("/api/v1/seguridad/perfiles");
 export const createUser = (payload: UserPayload) => post<User>("/api/v1/seguridad/usuarios", payload);
 export const updateUser = (id: number | string, payload: UserPayload) => put<User>(`/api/v1/seguridad/usuarios/${id}`, payload);

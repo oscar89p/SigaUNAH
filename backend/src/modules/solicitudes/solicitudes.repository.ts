@@ -11,7 +11,7 @@ const columns = `
   s.observacionResolucion, s.estadoSolicitud, s.usuarioRegistro, s.fechaRegistro,
   s.usuarioActualizacion, s.fechaActualizacion,
   CONCAT(p.primerNombre, ' ', p.primerApellido) AS nombreBeneficiario,
-  b.numeroCuenta, ts.codigoTipoSolicitud, ts.nombreTipoSolicitud,
+  p.numeroIdentificacion, b.numeroCuenta, ts.codigoTipoSolicitud, ts.nombreTipoSolicitud,
   tv.nombreTipoValor AS nombreTipoVigencia, es.nombreTipoValor AS nombreEstadoSolicitud,
   pa.codigoPeriodoAcademico, pa.nombrePeriodoAcademico
 `;

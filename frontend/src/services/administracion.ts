@@ -6,6 +6,9 @@ export interface Profile { idPerfil: number; codigoPerfil: string; nombrePerfil:
 export interface Permission { idPermiso: number; codigoPermiso: string; nombrePermiso: string; descripcionPermiso: string | null; moduloPermiso: string; estadoPermiso: boolean; operativo: boolean; perfiles: number }
 export interface Navigation { idNavegacion: number; codigoNavegacion: string; nombreNavegacion: string; tituloNavegacion: string; descripcionNavegacion: string | null; tipoNavegacion: string; enlaceNavegacion: string | null; claseNavegacion: string | null; ordenNavegacion: number; idNavegacionPadre: number | null; esVisible: boolean; estadoNavegacion: boolean; tituloPadre: string | null }
 export interface Parameter { idParametro: number; codigoParametro: string; nombreParametro: string; descripcionParametro: string | null; tipoDato: string; valorPredeterminado: string | null; permiteModificacion: boolean; estadoParametro: boolean }
+export interface ParameterValue { idParametroValor: number | string; idParametro: number; codigoParametro: string; nombreParametro: string; valorParametro: string; fechaInicioVigencia: string | null; fechaFinVigencia: string | null; estadoParametroValor: boolean; codigoParametroValor: string; nombreParametroValor: string; descripcionParametroValor: string | null; tipoParametroValor: string }
+export interface Catalog { idTipo: number; idCategoria: number; codigoCategoria: string; nombreCategoria: string; codigoTipo: string; nombreTipo: string; descripcionTipo: string | null; estadoTipo: boolean }
+export interface CatalogValue { idTipoValor: number; idTipo: number; codigoTipo: string; nombreTipo: string; codigoTipoValor: string; nombreTipoValor: string; descripcionTipoValor: string | null; ordenTipoValor: number; estadoTipoValor: boolean }
 export interface AuditEvent { idEvento: number; fuente: "BITACORA" | "AUTENTICACION"; fecha: string; idUsuario: number | null; usuario: string; modulo: string; evento: string; resultado: "correcto" | "fallido" | null; entidad: string; identificador: string | null; ip: string | null; correlacion: string | null }
 export type ProfilePayload = Pick<Profile, "codigoPerfil" | "nombrePerfil" | "descripcionPerfil">;
 export type PermissionPayload = Pick<Permission, "codigoPermiso" | "nombrePermiso" | "descripcionPermiso" | "moduloPermiso">;
@@ -40,5 +43,21 @@ export const setNavigationState = (id: number, estado: boolean) => patch<Navigat
 
 export const listParameters = () => get<Parameter[]>(`${base}/configuracion`);
 export const updateParameter = (id: number, valor: string) => put<Parameter>(`${base}/configuracion/${id}`, { valor });
+export const listAdminParameters = (params: Record<string, string | number | undefined> = {}) => get<Page<Parameter>>(`${base}/configuracion/parametros${query(params)}`);
+export const createAdminParameter = (data: unknown) => post<Parameter>(`${base}/configuracion/parametros`, data);
+export const updateAdminParameter = (id: number, data: unknown) => put<Parameter>(`${base}/configuracion/parametros/${id}`, data);
+export const setAdminParameterState = (id: number, estado: boolean) => patch<Parameter>(`${base}/configuracion/parametros/${id}/estado`, { estado });
+export const listParameterValues = (params: Record<string, string | number | undefined> = {}) => get<Page<ParameterValue>>(`${base}/configuracion/valores${query(params)}`);
+export const createParameterValue = (data: unknown) => post<ParameterValue>(`${base}/configuracion/valores`, data);
+export const updateParameterValue = (id: number | string, data: unknown) => put<ParameterValue>(`${base}/configuracion/valores/${id}`, data);
+export const setParameterValueState = (id: number | string, estado: boolean) => patch<ParameterValue>(`${base}/configuracion/valores/${id}/estado`, { estado });
+export const listCatalogs = (params: Record<string, string | number | undefined> = {}) => get<Page<Catalog>>(`${base}/configuracion/catalogos${query(params)}`);
+export const createCatalog = (data: unknown) => post<Catalog>(`${base}/configuracion/catalogos`, data);
+export const updateCatalog = (id: number, data: unknown) => put<Catalog>(`${base}/configuracion/catalogos/${id}`, data);
+export const setCatalogState = (id: number, estado: boolean) => patch<Catalog>(`${base}/configuracion/catalogos/${id}/estado`, { estado });
+export const listCatalogValues = (params: Record<string, string | number | undefined> = {}) => get<Page<CatalogValue>>(`${base}/configuracion/catalogos/valores${query(params)}`);
+export const createCatalogValue = (data: unknown) => post<CatalogValue>(`${base}/configuracion/catalogos/valores`, data);
+export const updateCatalogValue = (id: number, data: unknown) => put<CatalogValue>(`${base}/configuracion/catalogos/valores/${id}`, data);
+export const setCatalogValueState = (id: number, estado: boolean) => patch<CatalogValue>(`${base}/configuracion/catalogos/valores/${id}/estado`, { estado });
 export const listAudit = (params: Record<string, string | number | undefined> = {}) => get<Page<AuditEvent>>(`${base}/auditoria${query(params)}`);
 export const getAuditDetail = (source: AuditEvent["fuente"], id: number) => get<Record<string, unknown>>(`${base}/auditoria/${source}/${id}`);

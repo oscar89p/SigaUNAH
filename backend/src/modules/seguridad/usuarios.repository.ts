@@ -15,6 +15,15 @@ export interface UserRecord {
   usuarioActualizacion: string | null; fechaActualizacion: Date | null;
   perfiles: Array<{ idPerfil: number; codigoPerfil: string; nombrePerfil: string }>;
 }
+export interface PersonalInformation {
+  nombreUsuario: string;
+  correoElectronico: string;
+  nombreAcceso: string;
+  identificadorInstitucional: string | null;
+  tipoAutenticacion: string;
+  estadoUsuario: boolean;
+  ultimoAcceso: Date | null;
+}
 
 const sortColumns = {
   idUsuario: "u.idUsuario", nombreUsuario: "u.nombreUsuario", nombreAcceso: "u.nombreAcceso",
@@ -102,6 +111,16 @@ export async function find(id: bigint | number | string) {
   const result = await pool.request().input("id", sql.BigInt, id).query<UserRecord>(`SELECT ${userColumns} FROM Seguridad.tblUsuarios u WHERE u.idUsuario=@id`);
   const row = result.recordset[0];
   return row ? hydrate(pool, row) : null;
+}
+
+export async function findPersonalInformation(idUsuario: number): Promise<PersonalInformation | null> {
+  const pool = await getDatabasePool();
+  const result = await pool.request().input("idUsuario", sql.BigInt, idUsuario).query<PersonalInformation>(`
+    SELECT nombreUsuario,correoElectronico,nombreAcceso,identificadorInstitucional,
+           tipoAutenticacion,estadoUsuario,ultimoAcceso
+    FROM Seguridad.tblUsuarios
+    WHERE idUsuario=@idUsuario`);
+  return result.recordset[0] ?? null;
 }
 
 export async function profiles() {

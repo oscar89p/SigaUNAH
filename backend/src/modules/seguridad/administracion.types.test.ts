@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { createPermissionSchema, idsBodySchema, permissionQuerySchema, profileQuerySchema, updatePermissionSchema } from "./administracion.types.js";
+import { createPermissionSchema, idsBodySchema, parameterQuerySchema, parameterValueAdminSchema, permissionQuerySchema, profileQuerySchema, updatePermissionSchema } from "./administracion.types.js";
 
 describe("administration request contracts", () => {
   it("accepts only permission codes backed by a real API operation", () => {
@@ -22,5 +22,10 @@ describe("administration request contracts", () => {
   it("bounds paginated administrative queries", () => {
     expect(profileQuerySchema.parse({}).pageSize).toBe(10);
     expect(permissionQuerySchema.safeParse({ page: 1, pageSize: 101 }).success).toBe(false);
+  });
+
+  it("validates parameter values and vigency ranges", () => {
+    expect(parameterQuerySchema.parse({}).sortBy).toBe("codigoParametro");
+    expect(parameterValueAdminSchema.safeParse({ idParametro: 1, valorParametro: "x", codigoParametroValor: "A", nombreParametroValor: "A", tipoParametroValor: "STRING", fechaInicioVigencia: "2026-02-01", fechaFinVigencia: "2026-01-01" }).success).toBe(false);
   });
 });

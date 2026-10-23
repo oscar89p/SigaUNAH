@@ -2,7 +2,7 @@ import type { FastifyPluginAsync } from "fastify";
 
 import type { AuthenticatedRequest } from "../auth/auth-context.js";
 import * as repository from "./administracion.repository.js";
-import { auditQuerySchema, createPermissionSchema, idSchema, idsBodySchema, navigationQuerySchema, navigationSchema, parameterValueSchema, permissionQuerySchema, profileQuerySchema, profileSchema, stateSchema, updatePermissionSchema } from "./administracion.types.js";
+import { auditQuerySchema, catalogQuerySchema, catalogSchema, catalogValueQuerySchema, catalogValueSchema, createPermissionSchema, idSchema, idsBodySchema, navigationQuerySchema, navigationSchema, parameterQuerySchema, parameterSchema, parameterValueAdminSchema, parameterValueQuerySchema, parameterValueSchema, permissionQuerySchema, profileQuerySchema, profileSchema, stateSchema, updatePermissionSchema } from "./administracion.types.js";
 
 function context(request: AuthenticatedRequest) {
   return { actorId: request.auth.idUsuario, actorName: request.auth.nombreAcceso, ip: request.ip, agent: request.headers["user-agent"] as string | undefined };
@@ -38,6 +38,22 @@ export const administracionRoutes: FastifyPluginAsync = async app => {
 
   app.get(`${base}/configuracion`, async () => repository.listParameters());
   app.put(`${base}/configuracion/:id`, async request => repository.updateParameter(profileId(request.params), parameterValueSchema.parse(request.body).valor, context(request as AuthenticatedRequest)));
+  app.get(`${base}/configuracion/parametros`, async request => repository.listParameterAdmin(parameterQuerySchema.parse(request.query)));
+  app.post(`${base}/configuracion/parametros`, async (request, reply) => reply.status(201).send(await repository.createParameter(parameterSchema.parse(request.body), context(request as AuthenticatedRequest))));
+  app.put(`${base}/configuracion/parametros/:id`, async request => repository.updateParameterAdmin(profileId(request.params), parameterSchema.parse(request.body), context(request as AuthenticatedRequest)));
+  app.patch(`${base}/configuracion/parametros/:id/estado`, async request => repository.setParameterState(profileId(request.params), stateSchema.parse(request.body).estado, context(request as AuthenticatedRequest)));
+  app.get(`${base}/configuracion/valores`, async request => repository.listParameterValues(parameterValueQuerySchema.parse(request.query)));
+  app.post(`${base}/configuracion/valores`, async (request, reply) => reply.status(201).send(await repository.createParameterValue(parameterValueAdminSchema.parse(request.body), context(request as AuthenticatedRequest))));
+  app.put(`${base}/configuracion/valores/:id`, async request => repository.updateParameterValue(profileId(request.params), parameterValueAdminSchema.parse(request.body), context(request as AuthenticatedRequest)));
+  app.patch(`${base}/configuracion/valores/:id/estado`, async request => repository.setParameterValueState(profileId(request.params), stateSchema.parse(request.body).estado, context(request as AuthenticatedRequest)));
+  app.get(`${base}/configuracion/catalogos`, async request => repository.listCatalogs(catalogQuerySchema.parse(request.query)));
+  app.post(`${base}/configuracion/catalogos`, async (request, reply) => reply.status(201).send(await repository.createCatalog(catalogSchema.parse(request.body), context(request as AuthenticatedRequest))));
+  app.put(`${base}/configuracion/catalogos/:id`, async request => repository.updateCatalog(profileId(request.params), catalogSchema.parse(request.body), context(request as AuthenticatedRequest)));
+  app.patch(`${base}/configuracion/catalogos/:id/estado`, async request => repository.setCatalogState(profileId(request.params), stateSchema.parse(request.body).estado, context(request as AuthenticatedRequest)));
+  app.get(`${base}/configuracion/catalogos/valores`, async request => repository.listCatalogValues(catalogValueQuerySchema.parse(request.query)));
+  app.post(`${base}/configuracion/catalogos/valores`, async (request, reply) => reply.status(201).send(await repository.createCatalogValue(catalogValueSchema.parse(request.body), context(request as AuthenticatedRequest))));
+  app.put(`${base}/configuracion/catalogos/valores/:id`, async request => repository.updateCatalogValue(profileId(request.params), catalogValueSchema.parse(request.body), context(request as AuthenticatedRequest)));
+  app.patch(`${base}/configuracion/catalogos/valores/:id/estado`, async request => repository.setCatalogValueState(profileId(request.params), stateSchema.parse(request.body).estado, context(request as AuthenticatedRequest)));
 
   app.get(`${base}/auditoria`, async request => repository.listAudit(auditQuerySchema.parse(request.query)));
   app.get(`${base}/auditoria/:source/:id`, async request => {

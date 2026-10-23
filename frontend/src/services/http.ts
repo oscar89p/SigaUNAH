@@ -24,6 +24,11 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
 }
 
 export function get<T>(path: string, signal?: AbortSignal): Promise<T> { return request<T>(path, signal ? { signal } : undefined); }
+export async function download(path: string): Promise<Blob> {
+  const response = await fetch(`${apiBaseUrl}${path}`, { credentials: "include", headers: csrfHeaders() });
+  if (!response.ok) { const body = await response.json().catch(() => undefined) as { message?: string } | undefined; throw new ApiError(response.status, body?.message ?? "No fue posible descargar el reporte"); }
+  return response.blob();
+}
 export function post<T>(path: string, body: unknown): Promise<T> {
   return request<T>(path, { method: "POST", body: JSON.stringify(body), headers: csrfHeaders() });
 }

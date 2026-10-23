@@ -59,6 +59,15 @@ export const navigationSchema = z.object({
 });
 
 export const parameterValueSchema = z.object({ valor: z.string().max(1000) });
+export const parameterQuerySchema = pageSchema.extend({ sortBy: z.enum(["codigoParametro", "nombreParametro", "tipoDato", "estadoParametro"]).default("codigoParametro") });
+export const parameterValueQuerySchema = pageSchema.extend({ idParametro: z.coerce.number().int().positive().optional(), sortBy: z.enum(["codigoParametroValor", "nombreParametroValor", "tipoParametroValor", "estadoParametroValor"]).default("nombreParametroValor") });
+const parameterFields = z.object({ codigoParametro: z.string().trim().min(1).max(80).regex(/^[A-Z0-9_.-]+$/i), nombreParametro: z.string().trim().min(1).max(150), descripcionParametro: z.string().trim().max(500).nullable().optional(), tipoDato: z.string().trim().min(1).max(20), valorPredeterminado: z.string().max(1000).nullable().optional(), permiteModificacion: z.boolean().default(true) });
+export const parameterSchema = parameterFields;
+export const parameterValueAdminSchema = z.object({ idParametro: z.coerce.number().int().positive(), valorParametro: z.string().trim().min(1).max(1000), codigoParametroValor: z.string().trim().min(1).max(80).regex(/^[A-Z0-9_.-]+$/i), nombreParametroValor: z.string().trim().min(1).max(150), descripcionParametroValor: z.string().trim().max(500).nullable().optional(), tipoParametroValor: z.string().trim().min(1).max(64), fechaInicioVigencia: z.coerce.date().nullable().optional(), fechaFinVigencia: z.coerce.date().nullable().optional() }).superRefine((value, context) => { if (value.fechaInicioVigencia && value.fechaFinVigencia && value.fechaFinVigencia < value.fechaInicioVigencia) context.addIssue({ code: "custom", path: ["fechaFinVigencia"], message: "La fecha final no puede ser anterior a la inicial" }); });
+export const catalogQuerySchema = pageSchema.extend({ sortBy: z.enum(["codigoTipo", "nombreTipo", "estadoTipo"]).default("codigoTipo") });
+export const catalogValueQuerySchema = pageSchema.extend({ idTipo: z.coerce.number().int().positive().optional(), sortBy: z.enum(["codigoTipoValor", "nombreTipoValor", "ordenTipoValor", "estadoTipoValor"]).default("ordenTipoValor") });
+export const catalogSchema = z.object({ idCategoria: z.coerce.number().int().positive(), codigoTipo: z.string().trim().min(1).max(100).regex(/^[A-Z0-9_-]+$/i), nombreTipo: z.string().trim().min(1).max(150), descripcionTipo: z.string().trim().max(500).nullable().optional() });
+export const catalogValueSchema = z.object({ idTipo: z.coerce.number().int().positive(), codigoTipoValor: z.string().trim().min(1).max(100).regex(/^[A-Z0-9_.-]+$/i), nombreTipoValor: z.string().trim().min(1).max(150), descripcionTipoValor: z.string().trim().max(500).nullable().optional(), ordenTipoValor: z.coerce.number().int().min(-32768).max(32767) });
 
 export type PageQuery = z.infer<typeof pageSchema>;
 export type ProfileQuery = z.infer<typeof profileQuerySchema>;
@@ -68,3 +77,8 @@ export type AuditQuery = z.infer<typeof auditQuerySchema>;
 export type ProfileInput = z.infer<typeof profileSchema>;
 export type NavigationInput = z.infer<typeof navigationSchema>;
 export type AuditContext = { actorId: number; actorName: string; ip?: string; agent?: string };
+export type ParameterQuery = z.infer<typeof parameterQuerySchema>;
+export type ParameterValueQuery = z.infer<typeof parameterValueQuerySchema>;
+export type ParameterInput = z.infer<typeof parameterSchema>;
+export type ParameterValueAdminInput = z.infer<typeof parameterValueAdminSchema>;
+export type CatalogQuery = z.infer<typeof catalogQuerySchema>; export type CatalogValueQuery = z.infer<typeof catalogValueQuerySchema>; export type CatalogInput = z.infer<typeof catalogSchema>; export type CatalogValueInput = z.infer<typeof catalogValueSchema>;

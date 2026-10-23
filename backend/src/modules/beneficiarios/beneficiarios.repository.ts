@@ -2,7 +2,7 @@ import sql from "mssql";
 
 import { getDatabasePool } from "../../shared/database/pool.js";
 import { mapSqlError } from "../../shared/database/sql-error.js";
-import type { Create, Query, State, Update } from "./beneficiarios.types.js";
+import type { Create, Query, SearchQuery, State, Update } from "./beneficiarios.types.js";
 
 const columns = `
   b.idBeneficiario, b.idPersona, b.idTipoBeneficiario, b.idCarrera,
@@ -43,6 +43,18 @@ export async function list(query: Query) {
   const direction = query.sortDirection === "desc" ? "DESC" : "ASC";
   const data = await request.query(`SELECT ${columns} ${from} ${where} ORDER BY ${sortColumns[query.sortBy]} ${direction} OFFSET @offset ROWS FETCH NEXT @pageSize ROWS ONLY`);
   const total = await countRequest.query<{ total: number }>(`SELECT COUNT(1) AS total ${from} ${where}`);
+  return { items: data.recordset, total: total.recordset[0]?.total ?? 0 };
+}
+
+export async function search(query: SearchQuery) {
+  const pool = await getDatabasePool();
+  const request = pool.request().input("search", sql.NVarChar(150), `%${query.search}%`).input("offset", sql.Int, (query.page - 1) * query.pageSize).input("pageSize", sql.Int, query.pageSize);
+  const countRequest = pool.request().input("search", sql.NVarChar(150), `%${query.search}%`);
+  const where = "WHERE b.estadoBeneficiario=1 AND (p.primerNombre LIKE @search OR p.segundoNombre LIKE @search OR p.primerApellido LIKE @search OR p.segundoApellido LIKE @search OR p.numeroIdentificacion LIKE @search OR b.codigoCarne LIKE @search OR b.numeroCuenta LIKE @search)";
+  const fields = `b.idBeneficiario, CONCAT_WS(' ', p.primerNombre,p.segundoNombre,p.primerApellido,p.segundoApellido) AS nombreCompleto, CASE WHEN p.numeroIdentificacion IS NULL THEN NULL ELSE CONCAT(REPLICATE('*', CASE WHEN LEN(p.numeroIdentificacion)>4 THEN LEN(p.numeroIdentificacion)-4 ELSE 0 END), RIGHT(p.numeroIdentificacion,4)) END AS identificacionEnmascarada, b.codigoCarne AS codigoBeneficiario, b.estadoBeneficiario, CASE WHEN b.numeroCuenta IS NULL THEN NULL ELSE CONCAT(REPLICATE('*', CASE WHEN LEN(b.numeroCuenta)>4 THEN LEN(b.numeroCuenta)-4 ELSE 0 END), RIGHT(b.numeroCuenta,4)) END AS cuentaEnmascarada`;
+  const fromSearch = `FROM DbSigaUNAH.Beneficiarios.tblBeneficiarios b INNER JOIN DbSigaUNAH.Beneficiarios.tblPersonas p ON p.idPersona=b.idPersona`;
+  const data = await request.query(`SELECT ${fields} ${fromSearch} ${where} ORDER BY p.primerApellido,p.primerNombre,b.idBeneficiario OFFSET @offset ROWS FETCH NEXT @pageSize ROWS ONLY`);
+  const total = await countRequest.query<{ total: number }>(`SELECT COUNT(1) AS total ${fromSearch} ${where}`);
   return { items: data.recordset, total: total.recordset[0]?.total ?? 0 };
 }
 

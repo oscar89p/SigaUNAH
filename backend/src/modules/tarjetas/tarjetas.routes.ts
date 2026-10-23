@@ -1,6 +1,6 @@
 import type { FastifyPluginAsync } from "fastify";
 import * as service from "./tarjetas.service.js";
-import { assignmentQuerySchema,createAssignmentSchema,createSchema,idSchema,querySchema,renewAssignmentSchema,replaceAssignmentSchema,returnAssignmentSchema,stateSchema,updateSchema } from "./tarjetas.types.js";
+import { assignmentQuerySchema,createAssignmentSchema,createSchema,historyQuerySchema,idSchema,querySchema,renewAssignmentSchema,replaceAssignmentSchema,returnAssignmentSchema,stateSchema,updateSchema } from "./tarjetas.types.js";
 import type { AuthenticatedRequest } from "../auth/auth-context.js";
 export const tarjetasRoutes:FastifyPluginAsync=async(app)=>{
   app.get("/api/v1/tarjetas",async(request)=>service.list(querySchema.parse(request.query)));
@@ -8,7 +8,10 @@ export const tarjetasRoutes:FastifyPluginAsync=async(app)=>{
   app.get("/api/v1/tarjetas/disponibles",async()=>service.available());
   app.get("/api/v1/tarjetas/disponibles/diagnostico",async()=>service.availabilityDiagnostics());
   app.get("/api/v1/tarjetas/acceso-opciones",async()=>service.accessOptions());
+  app.get("/api/v1/tarjetas/asignacion-opciones",async()=>service.assignmentOptions());
+  app.get("/api/v1/tarjetas/solicitudes/:idBeneficiario",async(request)=>service.validRequests(idSchema.parse({ id: (request.params as { idBeneficiario: string }).idBeneficiario }).id));
   app.get("/api/v1/tarjetas/asignaciones",async(request)=>service.assignments(assignmentQuerySchema.parse(request.query)));
+  app.get("/api/v1/tarjetas/:id/historial",async(request)=>service.history(idSchema.parse(request.params).id,historyQuerySchema.parse(request.query)));
   app.get("/api/v1/tarjetas/:id",async(request)=>service.get(idSchema.parse(request.params).id));
   app.post("/api/v1/tarjetas/asignaciones",async(request,reply)=>reply.status(201).send(await service.assign(createAssignmentSchema.parse(request.body),(request as AuthenticatedRequest).auth)));
   app.patch("/api/v1/tarjetas/asignaciones/:id/devolucion",async(request)=>service.returnAssignment(idSchema.parse(request.params).id,returnAssignmentSchema.parse(request.body),(request as AuthenticatedRequest).auth));

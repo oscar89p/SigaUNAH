@@ -9,8 +9,10 @@ import DevicesView from "@/views/DevicesView.vue";
 import BeneficiariosView from "@/views/BeneficiariosView.vue";
 import SolicitudesView from "@/views/SolicitudesView.vue";
 import TarjetasView from "@/views/TarjetasView.vue";
+import GestionTarjetaView from "@/views/GestionTarjetaView.vue";
 import LoginView from "@/views/LoginView.vue";
 import NotFoundView from "@/views/NotFoundView.vue";
+import AccessDeniedView from "@/views/AccessDeniedView.vue";
 import UsersView from "@/views/UsersView.vue";
 import ProfilesView from "@/views/ProfilesView.vue";
 import ProfileConfigurationView from "@/views/ProfileConfigurationView.vue";
@@ -40,6 +42,7 @@ const router = createRouter({
         { path: "beneficiarios", name: "beneficiarios", component: BeneficiariosView },
         { path: "solicitudes", name: "solicitudes", component: SolicitudesView },
         { path: "tarjetas", name: "tarjetas", component: TarjetasView },
+        { path: "tarjetas/:id/gestionar", name: "gestionar-tarjeta", component: GestionTarjetaView, meta: { navigationPath: "/tarjetas" } },
         { path: "monitoreo", name: "monitoreo", component: MonitoringView, meta: { requiredPermission: "ACCESOS_HISTORIAL" } },
         { path: "administracion/usuarios", name: "usuarios", component: UsersView },
         { path: "administracion/perfiles", name: "perfiles", component: ProfilesView, meta: { requiredPermission: "PERFILES_ADMINISTRAR" } },
@@ -50,6 +53,7 @@ const router = createRouter({
         { path: "administracion/auditoria", name: "auditoria", component: AuditView, meta: { requiredPermission: "AUDITORIA_CONSULTAR" } }
       ]
     },
+    { path: "/acceso-denegado", name: "acceso-denegado", component: AccessDeniedView, meta: { requiresAuth: true } },
     { path: "/:pathMatch(.*)*", name: "not-found", component: NotFoundView, meta: { requiresAuth: true } }
   ]
 });
@@ -65,14 +69,15 @@ router.beforeEach(async (to) => {
   if (to.matched.some((record) => record.meta.requiresAuth)) {
     try { await navigation.load(); } catch { session.expire(); return { path: "/login", query: { redirect: to.fullPath } }; }
     const requiredPermission = to.meta.requiredPermission;
+    if (to.name === "acceso-denegado" || to.name === "not-found") return;
     if (typeof requiredPermission === "string" && !session.user.value?.permissions.includes(requiredPermission)) {
       const first = navigation.flatItems.value.find((item) => item.enlaceNavegacion);
       return first?.enlaceNavegacion && first.enlaceNavegacion !== to.path ? first.enlaceNavegacion : "/login";
     }
     if (typeof requiredPermission === "string") return;
-    if (!navigation.canAccess(to.path)) {
-      const first = navigation.flatItems.value.find((item) => item.enlaceNavegacion);
-      return first?.enlaceNavegacion && first.enlaceNavegacion !== to.path ? first.enlaceNavegacion : "/login";
+    const navigationPath = typeof to.meta.navigationPath === "string" ? to.meta.navigationPath : to.path;
+    if (!navigation.canAccess(navigationPath)) {
+      return { path: "/acceso-denegado", query: { from: to.fullPath } };
     }
   }
 });

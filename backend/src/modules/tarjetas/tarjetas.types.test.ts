@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
-import { availabilityDiagnosticsQuery } from "./tarjetas.repository.js";
-import { assignmentQuerySchema, createAssignmentSchema, querySchema, renewAssignmentSchema, returnAssignmentSchema } from "./tarjetas.types.js";
+import { availabilityDiagnosticsQuery, buildHistoryPageQuery } from "./tarjetas.repository.js";
+import { assignmentQuerySchema, createAssignmentSchema, historyQuerySchema, querySchema, renewAssignmentSchema, returnAssignmentSchema } from "./tarjetas.types.js";
 
 describe("tarjetas assignment contracts", () => {
   it("accepts bigint identifiers encoded by HTTP as strings", () => {
@@ -25,6 +25,19 @@ describe("tarjetas assignment contracts", () => {
   it("requires the target assignment state and reason when returning a card", () => {
     expect(returnAssignmentSchema.safeParse({ idEstadoAsignacionNuevo: 4, motivoCambio: "Devolución autorizada", usuario: "operator" }).success).toBe(true);
     expect(returnAssignmentSchema.safeParse({ idEstadoAsignacionNuevo: 4, motivoCambio: "", usuario: "operator" }).success).toBe(false);
+  });
+
+  it("validates and defaults paginated card history parameters", () => {
+    expect(historyQuerySchema.parse({})).toEqual({ page: 1, pageSize: 10 });
+    expect(historyQuerySchema.safeParse({ page: 0 }).success).toBe(false);
+    expect(historyQuerySchema.safeParse({ pageSize: 51 }).success).toBe(false);
+  });
+
+  it("uses ROW_NUMBER pagination for history instead of incompatible FETCH NEXT", () => {
+    const query = buildHistoryPageQuery();
+    expect(query).toContain("ROW_NUMBER() OVER");
+    expect(query).not.toContain("FETCH NEXT");
+    expect(query).toContain("@pageEnd");
   });
 
   it("keeps EXISTS outside aggregate expressions in the SQL Server diagnostic query", () => {

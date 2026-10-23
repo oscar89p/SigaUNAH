@@ -2,7 +2,7 @@ import sql from "mssql";
 
 import { getDatabasePool } from "../../shared/database/pool.js";
 import { mapSqlError } from "../../shared/database/sql-error.js";
-import type { AssignmentInput, AssignmentQuery, Create, Query, RenewAssignment, ReplaceAssignment, ReturnAssignment, State, Update } from "./tarjetas.types.js";
+import type { AssignmentInput, AssignmentQuery, Create, HistoryQuery, Query, RenewAssignment, ReplaceAssignment, ReturnAssignment, State, Update } from "./tarjetas.types.js";
 import { HttpError } from "../../shared/errors/http-error.js";
 import type { AuthContext } from "../auth/auth-context.js";
 import { stringifyJsonSafe } from "../../shared/serialization/json.js";
@@ -89,6 +89,38 @@ export async function accessOptions() {
     pool.request().query(`SELECT e.idElevador,e.codigoElevador,e.nombreElevador,b.nombreEdificio FROM DbSigaUNAH.Accesos.tblElevadores e INNER JOIN DbSigaUNAH.Accesos.tblEdificios b ON b.idEdificio=e.idEdificio WHERE e.estadoElevador=1 ORDER BY b.nombreEdificio,e.nombreElevador`)
   ]);
   return { perfilesAcceso: profiles.recordset, elevadores: elevators.recordset };
+}
+
+export async function assignmentOptions() {
+  const pool = await getDatabasePool();
+  const [vigencias, states] = await Promise.all([
+    pool.request().query(`SELECT tv.idTipoValor,tv.codigoTipoValor,tv.nombreTipoValor FROM DbSigaUNAH.Tipos.tblTiposValores tv INNER JOIN DbSigaUNAH.Tipos.tblTipos t ON t.idTipo=tv.idTipo WHERE t.codigoTipo='TIPO_VIGENCIA' AND tv.estadoTipoValor=1 ORDER BY tv.ordenTipoValor`),
+    pool.request().query(`SELECT tv.idTipoValor,tv.codigoTipoValor,tv.nombreTipoValor FROM DbSigaUNAH.Tipos.tblTiposValores tv INNER JOIN DbSigaUNAH.Tipos.tblTipos t ON t.idTipo=tv.idTipo WHERE t.codigoTipo='ESTADO_ASIGNACION' AND tv.estadoTipoValor=1 ORDER BY tv.ordenTipoValor`)
+  ]);
+  return { tiposVigencia: vigencias.recordset, estadosAsignacion: states.recordset };
+}
+
+export async function validRequests(idBeneficiario: bigint) {
+  const pool = await getDatabasePool();
+  return (await pool.request().input("beneficiary", sql.BigInt, idBeneficiario).query(`SELECT s.idSolicitud,s.codigoSolicitud,s.idBeneficiario,s.fechaInicioSolicitada,s.fechaFinSolicitada,tv.nombreTipoValor AS nombreTipoVigencia,es.nombreTipoValor AS nombreEstadoSolicitud FROM DbSigaUNAH.Solicitudes.tblSolicitudes s INNER JOIN DbSigaUNAH.Tipos.tblTiposValores tv ON tv.idTipoValor=s.idTipoVigencia INNER JOIN DbSigaUNAH.Tipos.tblTiposValores es ON es.idTipoValor=s.idEstadoSolicitud WHERE s.idBeneficiario=@beneficiary AND s.estadoSolicitud=1 ORDER BY s.fechaRegistro DESC`)).recordset;
+}
+
+export function buildHistoryPageQuery() {
+  return `SELECT * FROM (SELECT ${assignmentColumns},a.fechaRegistro AS fechaOperacion,a.usuarioRegistro AS usuarioResponsable,ROW_NUMBER() OVER (ORDER BY a.fechaRegistro DESC,a.idAsignacion DESC) AS numeroFila ${assignmentFrom} WHERE a.idTarjeta=@card) historial WHERE numeroFila>@offset AND numeroFila<=@pageEnd ORDER BY numeroFila`;
+}
+
+export async function history(idTarjeta: bigint, query: HistoryQuery) {
+  try {
+    const pool = await getDatabasePool();
+    const offset = (query.page - 1) * query.pageSize;
+    const request = pool.request().input("card", sql.BigInt, idTarjeta).input("offset", sql.Int, offset).input("pageEnd", sql.Int, offset + query.pageSize);
+    const countRequest = pool.request().input("card", sql.BigInt, idTarjeta);
+    const data = await request.query(buildHistoryPageQuery());
+    const total = await countRequest.query<{ total: number }>(`SELECT COUNT(1) AS total ${assignmentFrom} WHERE a.idTarjeta=@card`);
+    return { items: data.recordset, total: total.recordset[0]?.total ?? 0 };
+  } catch (error) {
+    return mapSqlError(error);
+  }
 }
 
 async function currentAssignment(request: sql.Request, id: bigint) {

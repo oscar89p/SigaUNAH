@@ -11,6 +11,7 @@ export const querySchema = z.object({
   sortBy: z.enum(["idBeneficiario", "primerApellido", "primerNombre", "numeroCuenta", "estadoBeneficiario", "fechaRegistro"]).default("primerApellido"),
   sortDirection: z.enum(["asc", "desc"]).default("asc")
 });
+export const searchSchema = z.object({ page: z.coerce.number().int().min(1).default(1), pageSize: z.coerce.number().int().min(1).max(25).default(10), search: z.string().trim().min(1).max(150) });
 
 const personSchema = z.object({
   primerNombre: z.string().trim().min(1).max(80),
@@ -39,3 +40,4 @@ export type Query = z.infer<typeof querySchema>;
 export type Create = z.infer<typeof createSchema>;
 export type Update = z.infer<typeof updateSchema>;
 export type State = z.infer<typeof stateSchema>;
+export type SearchQuery = z.infer<typeof searchSchema>;

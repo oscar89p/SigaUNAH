@@ -23,7 +23,7 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
   return response.json() as Promise<T>;
 }
 
-export function get<T>(path: string): Promise<T> { return request<T>(path); }
+export function get<T>(path: string, signal?: AbortSignal): Promise<T> { return request<T>(path, signal ? { signal } : undefined); }
 export function post<T>(path: string, body: unknown): Promise<T> {
   return request<T>(path, { method: "POST", body: JSON.stringify(body), headers: csrfHeaders() });
 }

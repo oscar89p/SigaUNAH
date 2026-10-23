@@ -27,6 +27,14 @@ export function useNavigation() {
     return items.value;
   }
   function clear() { items.value = []; error.value = ""; loadedForSession = false; }
-  function canAccess(path: string) { return flatten(items.value).some((item) => item.enlaceNavegacion === path); }
+  function canAccess(path: string) {
+    return flatten(items.value).some((item) => {
+      if (!item.enlaceNavegacion) return false;
+      if (item.enlaceNavegacion === path) return true;
+      // Las vistas operativas pueden tener rutas hijas dinámicas (por ejemplo,
+      // /tarjetas/:id/gestionar) y heredan el acceso de /tarjetas.
+      return path.startsWith(`${item.enlaceNavegacion}/`);
+    });
+  }
   return { items, loading, error, flatItems: computed(() => flatten(items.value)), load, clear, canAccess };
 }

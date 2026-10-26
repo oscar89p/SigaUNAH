@@ -29,6 +29,7 @@ describe("auth policies", () => {
     expect(permissionFor("/api/v1/reportes/resumen", "GET")).toBe("REPORTES_CONSULTAR");
     expect(permissionFor("/api/v1/reportes/opciones", "GET")).toBe("REPORTES_CONSULTAR");
     expect(permissionFor("/api/v1/reportes/exportar", "GET")).toBe("REPORTES_EXPORTAR");
+    expect(permissionFor("/api/v1/reportes/beneficiarios/exportar", "GET")).toBe("REPORTES_EXPORTAR");
     expect(permissionFor("/api/v1/inexistente", "GET")).toBeNull();
     expect(permissionFor("/api/v1/beneficiarios", "GET")).toBe("BENEFICIARIOS_CONSULTAR");
   });

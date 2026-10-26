@@ -31,7 +31,7 @@ export function permissionFor(url: string, method: string): string | null {
           : method === "PATCH" ? "SOLICITUDES_GESTIONAR" : null;
   }
   if (isResource(path, "/api/v1/operaciones/monitoreo")) return method === "GET" ? "ACCESOS_HISTORIAL" : null;
-  if (path === "/api/v1/reportes/exportar") return method === "GET" ? "REPORTES_EXPORTAR" : null;
+  if (path === "/api/v1/reportes/exportar" || (isResource(path, "/api/v1/reportes") && path.endsWith("/exportar"))) return method === "GET" ? "REPORTES_EXPORTAR" : null;
   if (isResource(path, "/api/v1/reportes")) return method === "GET" ? "REPORTES_CONSULTAR" : null;
   if (isResource(path, "/api/v1/beneficiarios")) {
     return method === "GET" ? "BENEFICIARIOS_CONSULTAR"

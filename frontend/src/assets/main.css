@@ -134,4 +134,5 @@ h1 {
 .my-information-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 16px; }.my-information-card { padding: 20px; }.my-information-card h2 { margin: 0 0 18px; color: var(--bo-dark); font-size: 16px; }.my-information-card dl { display: grid; gap: 12px; margin: 0; }.my-information-card dt { color: var(--bo-muted); font-size: 11px; font-weight: 700; }.my-information-card dd { margin: -7px 0 2px; color: var(--bo-text); font-size: 13px; overflow-wrap: anywhere; }
 @media (max-width: 720px) { .siga-grid-footer { align-items: flex-start; flex-direction: column; }.siga-grid-pagination { width: 100%; justify-content: flex-start; overflow-x: auto; padding-bottom: 2px; } }
 .siga-grid-actions-col { width: 155px; }
+.siga-grid-table th,.siga-grid-table td { min-width: 110px; }.siga-grid-table td { cursor: help; }
 @media (max-width: 900px) { .my-information-grid { grid-template-columns: 1fr; } }

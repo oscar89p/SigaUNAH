@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { assignmentAdministrativeReason, availabilityDiagnosticsQuery, availableCardsQuery, buildHistoryPageQuery, returnAdministrativeReason } from "./tarjetas.repository.js";
+import { assignmentAdministrativeReason, availabilityDiagnosticsQuery, availableCardsQuery, buildCurrentAssignmentQuery, buildHistoryPageQuery, returnAdministrativeReason } from "./tarjetas.repository.js";
 import { administrativeReasonSchema, assignmentQuerySchema, createAssignmentSchema, historyQuerySchema, querySchema, renewAssignmentSchema, returnAssignmentSchema, validateAssignmentDates } from "./tarjetas.types.js";
 
 describe("tarjetas assignment contracts", () => {
@@ -89,6 +89,17 @@ describe("tarjetas assignment contracts", () => {
     expect(query).toContain("tblAsignacionesEstados");
     expect(query).toContain("motivoLiberacion");
     expect((query.match(/AS usuarioResponsable/gi) ?? []).length).toBe(1);
+  });
+
+  it("resolves releaseState in the locked current-assignment query", () => {
+    const query = buildCurrentAssignmentQuery();
+    expect(query).toContain("OUTER APPLY");
+    expect(query).toContain("FROM DbSigaUNAH.Tarjetas.tblAsignacionesEstados aes");
+    expect(query).toContain(") releaseState");
+    expect(query).toContain("releaseState.motivoCambio");
+    expect(query).toContain("releaseState.idUsuarioResponsable");
+    expect(query).toContain("releaseState.usuarioRegistro");
+    expect(query).toContain("WITH (UPDLOCK,HOLDLOCK)");
   });
 
   it("keeps automatic administrative history inside the assignment transaction", () => {

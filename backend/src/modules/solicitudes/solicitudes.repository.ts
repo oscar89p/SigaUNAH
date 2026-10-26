@@ -15,7 +15,7 @@ const columns = `
   s.usuarioActualizacion, s.fechaActualizacion,
   CONCAT(p.primerNombre, ' ', p.primerApellido) AS nombreBeneficiario,
   p.numeroIdentificacion, b.numeroCuenta, ts.codigoTipoSolicitud, ts.nombreTipoSolicitud,
-  tv.nombreTipoValor AS nombreTipoVigencia, es.nombreTipoValor AS nombreEstadoSolicitud,
+  tv.nombreTipoValor AS nombreTipoVigencia, es.codigoTipoValor AS codigoEstadoSolicitud, es.nombreTipoValor AS nombreEstadoSolicitud,
   pa.codigoPeriodoAcademico, pa.nombrePeriodoAcademico,
   va.idAsignacion AS idAsignacionVigente, va.idTarjeta AS idTarjetaVigente,
   tar.codigoTarjeta AS codigoTarjetaVigente

@@ -227,7 +227,7 @@ export async function navigationIdsForProfile(id: number) {
 }
 async function validateNavigation(request: sql.Request, data: NavigationInput, id?: number) {
   if (data.enlaceNavegacion) {
-    const frontendRoutes = new Set(["/inicio", "/campus", "/edificios", "/elevadores", "/dispositivos", "/beneficiarios", "/solicitudes", "/tarjetas", "/monitoreo", "/administracion/usuarios", "/administracion/perfiles", "/administracion/permisos", "/administracion/navegaciones", "/administracion/configuracion", "/administracion/auditoria"]);
+      const frontendRoutes = new Set(["/inicio", "/campus", "/edificios", "/elevadores", "/dispositivos", "/beneficiarios", "/solicitudes", "/tarjetas", "/monitoreo", "/administracion/usuarios", "/administracion/perfiles", "/administracion/permisos", "/administracion/navegaciones", "/administracion/configuracion", "/administracion/configuracion/parametros", "/administracion/configuracion/catalogos", "/administracion/configuracion/periodos-academicos", "/administracion/auditoria"]);
     if (!frontendRoutes.has(data.enlaceNavegacion)) throw new HttpError(400, "La ruta no corresponde a una pantalla frontend registrada");
     const duplicate = await request.input("link", sql.NVarChar(256), data.enlaceNavegacion).input("currentId", sql.Int, id ?? 0).query(`SELECT TOP(1) idNavegacion FROM Seguridad.tblNavegaciones WHERE enlaceNavegacion=@link AND idNavegacion<>@currentId`);
     if (duplicate.recordset.length) throw new HttpError(409, "La ruta ya está asociada a otra opción de navegación");

@@ -1,6 +1,6 @@
 import type { FastifyPluginAsync } from "fastify";
 import * as service from "./tarjetas.service.js";
-import { assignmentQuerySchema,createAssignmentSchema,createSchema,historyQuerySchema,idSchema,querySchema,renewAssignmentSchema,replaceAssignmentSchema,returnAssignmentSchema,stateSchema,updateSchema } from "./tarjetas.types.js";
+import { administrativeHistoryQuerySchema, administrativeReasonSchema, assignmentQuerySchema,createAssignmentSchema,createSchema,historyQuerySchema,idSchema,querySchema,renewAssignmentSchema,replaceAssignmentSchema,returnAssignmentSchema,stateSchema,updateSchema } from "./tarjetas.types.js";
 import type { AuthenticatedRequest } from "../auth/auth-context.js";
 export const tarjetasRoutes:FastifyPluginAsync=async(app)=>{
   app.get("/api/v1/tarjetas",async(request)=>service.list(querySchema.parse(request.query)));
@@ -12,6 +12,8 @@ export const tarjetasRoutes:FastifyPluginAsync=async(app)=>{
   app.get("/api/v1/tarjetas/solicitudes/:idBeneficiario",async(request)=>service.validRequests(idSchema.parse({ id: (request.params as { idBeneficiario: string }).idBeneficiario }).id));
   app.get("/api/v1/tarjetas/asignaciones",async(request)=>service.assignments(assignmentQuerySchema.parse(request.query)));
   app.get("/api/v1/tarjetas/:id/historial",async(request)=>service.history(idSchema.parse(request.params).id,historyQuerySchema.parse(request.query)));
+  app.get("/api/v1/tarjetas/:id/estado-administrativo",async(request)=>service.administrativeState(idSchema.parse(request.params).id));
+  app.get("/api/v1/tarjetas/:id/historial-estado",async(request)=>service.administrativeHistory(idSchema.parse(request.params).id,administrativeHistoryQuerySchema.parse(request.query)));
   app.get("/api/v1/tarjetas/:id",async(request)=>service.get(idSchema.parse(request.params).id));
   app.post("/api/v1/tarjetas/asignaciones",async(request,reply)=>reply.status(201).send(await service.assign(createAssignmentSchema.parse(request.body),(request as AuthenticatedRequest).auth)));
   app.patch("/api/v1/tarjetas/asignaciones/:id/devolucion",async(request)=>service.returnAssignment(idSchema.parse(request.params).id,returnAssignmentSchema.parse(request.body),(request as AuthenticatedRequest).auth));
@@ -19,5 +21,8 @@ export const tarjetasRoutes:FastifyPluginAsync=async(app)=>{
   app.post("/api/v1/tarjetas/asignaciones/:id/reemplazo",async(request)=>service.replaceAssignment(idSchema.parse(request.params).id,replaceAssignmentSchema.parse(request.body),(request as AuthenticatedRequest).auth));
   app.post("/api/v1/tarjetas",async(request,reply)=>reply.status(201).send(await service.create(createSchema.parse(request.body),(request as AuthenticatedRequest).auth)));
   app.put("/api/v1/tarjetas/:id",async(request)=>service.update(idSchema.parse(request.params).id,updateSchema.parse(request.body)));
-  app.patch("/api/v1/tarjetas/:id/estado",async(request)=>service.state(idSchema.parse(request.params).id,stateSchema.parse(request.body)));
+  app.patch("/api/v1/tarjetas/:id/estado",async(request)=>service.state(idSchema.parse(request.params).id,stateSchema.parse(request.body),(request as AuthenticatedRequest).auth));
+  app.post("/api/v1/tarjetas/:id/bloqueo",async(request)=>service.block(idSchema.parse(request.params).id,administrativeReasonSchema.parse(request.body),(request as AuthenticatedRequest).auth));
+  app.post("/api/v1/tarjetas/:id/desbloqueo",async(request)=>service.unblock(idSchema.parse(request.params).id,administrativeReasonSchema.parse(request.body),(request as AuthenticatedRequest).auth));
+  app.post("/api/v1/tarjetas/:id/baja",async(request)=>service.retire(idSchema.parse(request.params).id,administrativeReasonSchema.parse(request.body),(request as AuthenticatedRequest).auth));
 };

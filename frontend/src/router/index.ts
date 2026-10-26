@@ -7,6 +7,7 @@ import BuildingsView from "@/views/BuildingsView.vue";
 import ElevatorsView from "@/views/ElevatorsView.vue";
 import DevicesView from "@/views/DevicesView.vue";
 import BeneficiariosView from "@/views/BeneficiariosView.vue";
+import BeneficiarioDetalleView from "@/views/BeneficiarioDetalleView.vue";
 import SolicitudesView from "@/views/SolicitudesView.vue";
 import TarjetasView from "@/views/TarjetasView.vue";
 import GestionTarjetaView from "@/views/GestionTarjetaView.vue";
@@ -20,6 +21,7 @@ import PermissionsView from "@/views/PermissionsView.vue";
 import NavigationAdminView from "@/views/NavigationAdminView.vue";
 import ConfigurationView from "@/views/ConfigurationView.vue";
 import CatalogsView from "@/views/CatalogsView.vue";
+import AcademicPeriodsView from "@/views/AcademicPeriodsView.vue";
 import AuditView from "@/views/AuditView.vue";
 import MonitoringView from "@/views/MonitoringView.vue";
 import ReportsView from "@/views/ReportsView.vue";
@@ -44,6 +46,7 @@ const router = createRouter({
         { path: "elevadores", name: "elevadores", component: ElevatorsView },
         { path: "dispositivos", name: "dispositivos", component: DevicesView },
         { path: "beneficiarios", name: "beneficiarios", component: BeneficiariosView },
+        { path: "beneficiarios/:id", name: "beneficiario-detalle", component: BeneficiarioDetalleView, meta: { navigationPath: "/beneficiarios" } },
         { path: "solicitudes", name: "solicitudes", component: SolicitudesView },
         { path: "tarjetas", name: "tarjetas", component: TarjetasView },
         { path: "tarjetas/:id/gestionar", name: "gestionar-tarjeta", component: GestionTarjetaView, meta: { navigationPath: "/tarjetas" } },
@@ -56,8 +59,10 @@ const router = createRouter({
         { path: "administracion/perfiles/:id/configuracion", name: "configuracion-perfil", component: ProfileConfigurationView, meta: { requiredPermission: "PERFILES_ADMINISTRAR" } },
         { path: "administracion/permisos", name: "permisos", component: PermissionsView, meta: { requiredPermission: "PERMISOS_ADMINISTRAR" } },
         { path: "administracion/navegaciones", name: "navegaciones", component: NavigationAdminView, meta: { requiredPermission: "NAVEGACION_ADMINISTRAR" } },
-        { path: "administracion/configuracion", name: "configuracion", component: ConfigurationView, meta: { requiredPermission: "CONFIGURACION_ADMINISTRAR" } },
+        { path: "administracion/configuracion", name: "configuracion", redirect: "/administracion/configuracion/parametros", meta: { requiredPermission: "CONFIGURACION_ADMINISTRAR" } },
+        { path: "administracion/configuracion/parametros", name: "configuracion-parametros", component: ConfigurationView, meta: { requiredPermission: "CONFIGURACION_ADMINISTRAR" } },
         { path: "administracion/configuracion/catalogos", name: "catalogos", component: CatalogsView, meta: { requiredPermission: "CONFIGURACION_ADMINISTRAR" } },
+        { path: "administracion/configuracion/periodos-academicos", name: "periodos-academicos", component: AcademicPeriodsView, meta: { requiredPermission: "CONFIGURACION_ADMINISTRAR" } },
         { path: "administracion/auditoria", name: "auditoria", component: AuditView, meta: { requiredPermission: "AUDITORIA_CONSULTAR" } }
       ]
     },

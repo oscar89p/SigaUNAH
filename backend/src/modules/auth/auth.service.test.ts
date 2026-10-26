@@ -2,7 +2,7 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 import argon2 from "argon2";
 import * as repository from "./auth.repository.js";
 import { authenticate, can, csrfMatches, csrfTokenForSession, isSessionValid, login, logout, sessionIdentifier } from "./auth.service.js";
-import { canGrantPermissions, isAuthManagedRequest, permissionFor } from "./authorization.js";
+import { canGrantPermissions, canSearchBeneficiariesForSolicitud, isAuthManagedRequest, permissionFor } from "./authorization.js";
 
 afterEach(() => vi.restoreAllMocks());
 
@@ -40,6 +40,13 @@ describe("auth policies", () => {
     const accessReader = { ...context, permisos: ["ACCESOS_CONSULTAR"] };
     expect(can(accessReader, permissionFor("/api/v1/campus", "GET")!)).toBe(true);
     expect(can(accessReader, permissionFor("/api/v1/campus", "POST")!)).toBe(false);
+  });
+
+  it("allows masked beneficiary lookup only inside request capture permissions", () => {
+    expect(canSearchBeneficiariesForSolicitud("/api/v1/beneficiarios/busqueda", "GET", ["SOLICITUDES_REGISTRAR"])).toBe(true);
+    expect(canSearchBeneficiariesForSolicitud("/api/v1/beneficiarios/busqueda", "GET", ["SOLICITUDES_MODIFICAR"])).toBe(true);
+    expect(canSearchBeneficiariesForSolicitud("/api/v1/beneficiarios/busqueda", "GET", ["BENEFICIARIOS_CONSULTAR"])).toBe(false);
+    expect(canSearchBeneficiariesForSolicitud("/api/v1/beneficiarios", "GET", ["SOLICITUDES_REGISTRAR"])).toBe(false);
   });
 
   it("prevents granting permissions the actor does not possess", () => {

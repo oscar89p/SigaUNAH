@@ -14,6 +14,7 @@ export interface ConditionOption { idTipoValor: number; codigoTipoValor: string;
 export interface BeneficiaryPayload { person: Omit<Beneficiary, "idBeneficiario" | "idPersona" | "idTipoBeneficiario" | "idCarrera" | "numeroCuenta" | "correoInstitucional" | "codigoCarne" | "estadoAcademico" | "estadoBeneficiario" | "codigoTipoBeneficiario" | "nombreTipoBeneficiario" | "codigoCarrera" | "nombreCarrera">; beneficiary: { idTipoBeneficiario: number; idCarrera: number | null; numeroCuenta: string | null; correoInstitucional: string | null; codigoCarne: string | null; estadoAcademico: string | null } }
 const query = (search: string, page: number) => new URLSearchParams({ page: String(page), pageSize: "10", search, sortBy: "primerApellido", sortDirection: "asc" }).toString();
 export const listBeneficiaries = (search: string, page = 1) => get<Paginated<Beneficiary>>(`/api/v1/beneficiarios?${query(search, page)}`);
+export const getBeneficiary = (id: number | string) => get<Beneficiary>(`/api/v1/beneficiarios/${id}`);
 export const searchBeneficiaries = (search: string, page = 1, signal?: AbortSignal) => get<Paginated<BeneficiarySearchResult>>(`/api/v1/beneficiarios/busqueda?${new URLSearchParams({ search, page: String(page), pageSize: "10" })}`, signal);
 export const getBeneficiaryOptions = () => get<BeneficiaryOptions>("/api/v1/beneficiarios/opciones");
 export const createBeneficiary = (payload: BeneficiaryPayload) => post<Beneficiary>("/api/v1/beneficiarios", { ...payload, usuarioRegistro: "backoffice" });

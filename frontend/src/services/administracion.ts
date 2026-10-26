@@ -9,6 +9,7 @@ export interface Parameter { idParametro: number; codigoParametro: string; nombr
 export interface ParameterValue { idParametroValor: number | string; idParametro: number; codigoParametro: string; nombreParametro: string; valorParametro: string; fechaInicioVigencia: string | null; fechaFinVigencia: string | null; estadoParametroValor: boolean; codigoParametroValor: string; nombreParametroValor: string; descripcionParametroValor: string | null; tipoParametroValor: string }
 export interface Catalog { idTipo: number; idCategoria: number; codigoCategoria: string; nombreCategoria: string; codigoTipo: string; nombreTipo: string; descripcionTipo: string | null; estadoTipo: boolean }
 export interface CatalogValue { idTipoValor: number; idTipo: number; codigoTipo: string; nombreTipo: string; codigoTipoValor: string; nombreTipoValor: string; descripcionTipoValor: string | null; ordenTipoValor: number; estadoTipoValor: boolean }
+export interface AcademicPeriod { idPeriodoAcademico: number; idInstitucion: number; codigoPeriodoAcademico: string; nombrePeriodoAcademico: string; fechaInicioPeriodoAcademico: string; fechaFinPeriodoAcademico: string; estadoPeriodoAcademico: boolean; vigenciaPeriodoAcademico: "PROGRAMADO" | "VIGENTE" | "FINALIZADO" }
 export interface AuditEvent { idEvento: number; fuente: "BITACORA" | "AUTENTICACION"; fecha: string; idUsuario: number | null; usuario: string; modulo: string; evento: string; resultado: "correcto" | "fallido" | null; entidad: string; identificador: string | null; ip: string | null; correlacion: string | null }
 export type ProfilePayload = Pick<Profile, "codigoPerfil" | "nombrePerfil" | "descripcionPerfil">;
 export type PermissionPayload = Pick<Permission, "codigoPermiso" | "nombrePermiso" | "descripcionPermiso" | "moduloPermiso">;
@@ -59,5 +60,9 @@ export const listCatalogValues = (params: Record<string, string | number | undef
 export const createCatalogValue = (data: unknown) => post<CatalogValue>(`${base}/configuracion/catalogos/valores`, data);
 export const updateCatalogValue = (id: number, data: unknown) => put<CatalogValue>(`${base}/configuracion/catalogos/valores/${id}`, data);
 export const setCatalogValueState = (id: number, estado: boolean) => patch<CatalogValue>(`${base}/configuracion/catalogos/valores/${id}/estado`, { estado });
+export const listAcademicPeriods = (params: Record<string, string | number | undefined> = {}) => get<Page<AcademicPeriod>>(`${base}/configuracion/periodos-academicos${query(params)}`);
+export const createAcademicPeriod = (data: unknown) => post<AcademicPeriod>(`${base}/configuracion/periodos-academicos`, data);
+export const updateAcademicPeriod = (id: number, data: unknown) => put<AcademicPeriod>(`${base}/configuracion/periodos-academicos/${id}`, data);
+export const setAcademicPeriodState = (id: number, estado: boolean) => patch<AcademicPeriod>(`${base}/configuracion/periodos-academicos/${id}/estado`, { estado });
 export const listAudit = (params: Record<string, string | number | undefined> = {}) => get<Page<AuditEvent>>(`${base}/auditoria${query(params)}`);
 export const getAuditDetail = (source: AuditEvent["fuente"], id: number) => get<Record<string, unknown>>(`${base}/auditoria/${source}/${id}`);

@@ -17,10 +17,11 @@ import { closeDatabasePool } from "./shared/database/pool.js";
 import { HttpError } from "./shared/errors/http-error.js";
 import { authenticate, can, csrfMatches } from "./modules/auth/auth.service.js";
 import type { AuthenticatedRequest } from "./modules/auth/auth-context.js";
-import { isAuthManagedRequest, permissionFor } from "./modules/auth/authorization.js";
+import { canSearchBeneficiariesForSolicitud, isAuthManagedRequest, permissionFor } from "./modules/auth/authorization.js";
 import { navegacionRoutes } from "./modules/seguridad/navegacion.routes.js";
 import { usuariosRoutes } from "./modules/seguridad/usuarios.routes.js";
 import { administracionRoutes } from "./modules/seguridad/administracion.routes.js";
+import { periodosAcademicosRoutes } from "./modules/periodos-academicos/periodos-academicos.routes.js";
 import { monitoreoRoutes } from "./modules/operaciones/monitoreo.routes.js";
 import { reportesRoutes } from "./modules/reportes/reportes.routes.js";
 import { stringifyJsonSafe } from "./shared/serialization/json.js";
@@ -73,7 +74,7 @@ app.addHook("preHandler", async (request) => {
   if (isAuthManagedRequest(request.url, request.method)) return;
   const permission = permissionFor(request.url, request.method);
   if (request.url === "/api/v1/seguridad/mi-navegacion" && request.method === "GET") return;
-  if (!permission || !can(auth, permission)) throw new HttpError(403, "No tiene permisos para esta operación");
+  if (!permission || (!can(auth, permission) && !canSearchBeneficiariesForSolicitud(request.url, request.method, auth.permisos))) throw new HttpError(403, "No tiene permisos para esta operación");
   if (["POST", "PUT", "PATCH", "DELETE"].includes(request.method) && !csrfMatches(request.cookies[env.AUTH_SESSION_COOKIE], request.headers["x-csrf-token"] as string | undefined)) {
     throw new HttpError(403, "Token CSRF inválido");
   }
@@ -89,6 +90,7 @@ await app.register(tarjetasRoutes);
 await app.register(navegacionRoutes);
 await app.register(usuariosRoutes);
 await app.register(administracionRoutes);
+await app.register(periodosAcademicosRoutes);
 await app.register(monitoreoRoutes);
 await app.register(reportesRoutes);
 

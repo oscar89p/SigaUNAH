@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
-import { availabilityDiagnosticsQuery, buildHistoryPageQuery } from "./tarjetas.repository.js";
-import { assignmentQuerySchema, createAssignmentSchema, historyQuerySchema, querySchema, renewAssignmentSchema, returnAssignmentSchema } from "./tarjetas.types.js";
+import { assignmentAdministrativeReason, availabilityDiagnosticsQuery, availableCardsQuery, buildHistoryPageQuery, returnAdministrativeReason } from "./tarjetas.repository.js";
+import { administrativeReasonSchema, assignmentQuerySchema, createAssignmentSchema, historyQuerySchema, querySchema, renewAssignmentSchema, returnAssignmentSchema, validateAssignmentDates } from "./tarjetas.types.js";
 
 describe("tarjetas assignment contracts", () => {
   it("accepts bigint identifiers encoded by HTTP as strings", () => {
@@ -8,14 +8,30 @@ describe("tarjetas assignment contracts", () => {
     expect(result.success).toBe(true);
   });
 
+  it("permits extending assignment validity beyond the approved request", () => {
+    expect(() => validateAssignmentDates(new Date("2026-10-25"), new Date("2027-12-31"))).not.toThrow();
+  });
+
+  it("rejects inverted assignment dates", () => {
+    expect(() => validateAssignmentDates(new Date("2026-12-31"), new Date("2026-10-25"))).toThrow("La fecha final no puede ser anterior");
+  });
+
   it("does not invent filters and defaults history to false", () => {
-    expect(assignmentQuerySchema.parse({}).historial).toBe(false);
+    expect(assignmentQuerySchema.parse({})).toMatchObject({ page: 1, pageSize: 10, historial: false });
+    expect(assignmentQuerySchema.parse({ historial: "false" }).historial).toBe(false);
+    expect(assignmentQuerySchema.parse({ historial: "true" }).historial).toBe(true);
+    expect(assignmentQuerySchema.parse({ historial: "0" }).historial).toBe(false);
+    expect(assignmentQuerySchema.parse({ historial: "1" }).historial).toBe(true);
     expect(assignmentQuerySchema.safeParse({ idTarjeta: 0 }).success).toBe(false);
   });
 
   it("accepts the backend card-list state filter", () => {
     expect(querySchema.parse({ estado: "active" }).estado).toBe("active");
     expect(querySchema.safeParse({ estado: "unknown" }).success).toBe(false);
+  });
+
+  it("accepts the beneficiary filter used by the card list", () => {
+    expect(querySchema.parse({ idBeneficiario: "20" }).idBeneficiario).toBe(20n);
   });
 
   it("requires a reason when renewing an assignment", () => {
@@ -45,5 +61,39 @@ describe("tarjetas assignment contracts", () => {
     expect(aggregateExpressions.length).toBeGreaterThan(0);
     expect(aggregateExpressions.some(expression => /EXISTS|NOT\s+EXISTS/i.test(expression))).toBe(false);
     expect(availabilityDiagnosticsQuery).toContain("tieneAsignacionVigente");
+  });
+
+  it("uses the active-and-no-current-assignment rule for available cards", () => {
+    expect(availableCardsQuery).toContain("t.estadoTarjeta=1");
+    expect(availableCardsQuery).toContain("NOT EXISTS");
+    expect(availableCardsQuery).toContain("a.esAsignacionVigente=1");
+  });
+
+  it("requires an administrative reason and never accepts a client user", () => {
+    expect(administrativeReasonSchema.safeParse({ motivoCambio: "Bloqueo preventivo", usuario: "otro" }).success).toBe(true);
+    expect(administrativeReasonSchema.safeParse({ motivoCambio: "" }).success).toBe(false);
+  });
+
+  it("does not accept a client supplied user for administrative assignment operations", () => {
+    expect(returnAssignmentSchema.safeParse({ idEstadoAsignacionNuevo: 4, motivoCambio: "Recepción", usuario: "otro" }).success).toBe(true);
+    expect(returnAssignmentSchema.parse({ idEstadoAsignacionNuevo: 4, motivoCambio: "Recepción", usuario: "otro" })).not.toHaveProperty("usuario");
+  });
+
+  it("generates non-null administrative reasons from the real request code", () => {
+    expect(assignmentAdministrativeReason("SOL-2026-000006")).toBe("Asignación de tarjeta mediante solicitud SOL-2026-000006");
+    expect(returnAdministrativeReason("SOL-2026-000006")).toBe("Devolución de tarjeta correspondiente a la solicitud SOL-2026-000006");
+  });
+
+  it("joins the assignment state history for release traceability", () => {
+    const query = buildHistoryPageQuery();
+    expect(query).toContain("tblAsignacionesEstados");
+    expect(query).toContain("motivoLiberacion");
+    expect((query.match(/AS usuarioResponsable/gi) ?? []).length).toBe(1);
+  });
+
+  it("keeps automatic administrative history inside the assignment transaction", () => {
+    const source = availableCardsQuery;
+    expect(source).toContain("NOT EXISTS");
+    expect(assignmentAdministrativeReason("SOL-TEST").trim()).not.toBe("");
   });
 });

@@ -9,17 +9,16 @@ export const querySchema = z.object({
   pageSize: z.coerce.number().int().min(1).max(100).default(10),
   search: z.string().trim().max(150).optional(),
   idEstadoSolicitud: z.coerce.number().int().positive().optional(),
+  idBeneficiario: z.coerce.bigint().positive().optional(),
   sortBy: z.enum(["idSolicitud", "codigoSolicitud", "beneficiario", "fechaSolicitud", "estado", "fechaRegistro"]).default("fechaSolicitud"),
   sortDirection: z.enum(["asc", "desc"]).default("desc")
 });
 
 const fields = z.object({
-  codigoSolicitud: z.string().trim().min(1).max(30),
   idBeneficiario: z.coerce.bigint().positive(),
   idPeriodoAcademico: z.number().int().positive().nullable().optional(),
   idTipoSolicitud: z.number().int().positive().nullable().optional(),
   idTipoVigencia: z.number().int().positive(),
-  idEstadoSolicitud: z.number().int().positive(),
   fechaInicioSolicitada: date,
   fechaFinSolicitada: date,
   motivoSolicitud: z.string().trim().max(1500).nullable().optional(),
@@ -33,8 +32,8 @@ function validateDateRange(value: { fechaInicioSolicitada?: Date | null; fechaFi
 }
 
 export const createSchema = fields.extend({ usuarioRegistro: user }).superRefine(validateDateRange);
-export const updateSchema = fields.omit({ idEstadoSolicitud: true }).extend({ usuarioActualizacion: user }).superRefine(validateDateRange);
-export const stateSchema = z.object({ idEstadoSolicitudNuevo: z.number().int().positive(), motivoCambio: z.string().trim().max(1000).nullable().optional(), usuarioRegistro: user, usuarioActualizacion: user });
+export const updateSchema = fields.extend({ usuarioActualizacion: user }).superRefine(validateDateRange);
+export const stateSchema = z.object({ codigoEstadoSolicitudNuevo: z.string().trim().min(1).max(100), motivoCambio: z.string().trim().max(1000).nullable().optional(), usuarioRegistro: user, usuarioActualizacion: user });
 export type Query = z.infer<typeof querySchema>;
 export type Create = z.infer<typeof createSchema>;
 export type Update = z.infer<typeof updateSchema>;

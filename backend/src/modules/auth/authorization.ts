@@ -40,6 +40,8 @@ export function permissionFor(url: string, method: string): string | null {
           : method === "PUT" ? "BENEFICIARIOS_MODIFICAR" : null;
   }
   if (isResource(path, "/api/v1/tarjetas")) {
+    if (path.endsWith("/bloqueo") || path.endsWith("/baja")) return method === "POST" ? "TARJETAS_DESACTIVAR" : null;
+    if (path.endsWith("/desbloqueo")) return method === "POST" ? "TARJETAS_ACTIVAR" : null;
     if (path.endsWith("/devolucion")) return method === "PATCH" ? "TARJETAS_DESACTIVAR" : null;
     if (path.endsWith("/renovacion")) return method === "POST" ? "TARJETAS_RENOVAR" : null;
     if (path.endsWith("/asignaciones") || path.endsWith("/reemplazo")) return method === "GET" ? "TARJETAS_CONSULTAR" : "TARJETAS_ASIGNAR";
@@ -57,6 +59,13 @@ export function permissionFor(url: string, method: string): string | null {
       ? "USUARIOS_ADMINISTRAR" : null;
   }
   return path.startsWith("/api/v1/") ? null : null;
+}
+
+/** The masked beneficiary search is also a dependency of the request capture flow.
+ * It does not grant access to the beneficiary administration endpoints. */
+export function canSearchBeneficiariesForSolicitud(url: string, method: string, permissions: string[]): boolean {
+  const path = url.split("?", 1)[0] ?? "";
+  return path === "/api/v1/beneficiarios/busqueda" && method === "GET" && ["SOLICITUDES_CONSULTAR", "SOLICITUDES_REGISTRAR", "SOLICITUDES_MODIFICAR"].some(permission => permissions.includes(permission));
 }
 
 function isWriteMethod(method: string): boolean {

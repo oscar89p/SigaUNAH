@@ -238,8 +238,8 @@ onMounted(() => void loadCatalogs());
 </script>
 
 <template>
-  <AppBreadcrumb :items="[{ label: 'Administración', to: '/administracion/configuracion' }, { label: 'Catálogos' }]" />
-  <PageHeader eyebrow="Administración" title="Catálogos institucionales" description="Gestión de tipos y valores utilizados por los módulos de SIGA UNAH." />
+  <AppBreadcrumb :items="[{ label: 'Administración' }, { label: 'Configuración' }, { label: 'Catálogos' }]" />
+  <PageHeader eyebrow="Configuración" title="Catálogos institucionales" description="Gestión de tipos y valores utilizados por los módulos de SIGA UNAH." />
   <div v-if="operationSuccess" class="bo-notice bo-notice-success" role="status">{{ operationSuccess }}</div>
   <div v-if="operationError" class="bo-notice bo-state-error" role="alert">{{ operationError }}</div>
 

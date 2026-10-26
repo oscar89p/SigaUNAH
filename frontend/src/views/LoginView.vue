@@ -37,7 +37,7 @@ async function ingresar() {
 <template>
   <main class="login-page" aria-labelledby="login-title">
     <section class="login-card">
-      <div class="login-brand"><span class="login-mark">SU</span><div><span>Universidad Nacional Autónoma de Honduras</span><strong>SIGA UNAH</strong></div></div>
+      <div class="login-brand"><img class="login-mark" src="/assets/img/unah-escudo.png" alt="Escudo de la Universidad Nacional Autónoma de Honduras" /><div><span>Universidad Nacional Autónoma de Honduras</span><strong>SIGA UNAH</strong></div></div>
       <div class="login-heading"><p class="login-eyebrow">BackOffice institucional</p><h1 id="login-title">Ingresar al sistema</h1><p>Sistema de Gestión de Accesos a Ascensores</p></div>
       <form class="login-form" @submit.prevent="ingresar">
         <label for="usuario">Usuario</label><input id="usuario" v-model="usuario" name="usuario" type="text" maxlength="90" autocomplete="username" required :disabled="loading" />

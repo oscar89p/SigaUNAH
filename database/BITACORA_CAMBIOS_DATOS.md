@@ -36,3 +36,11 @@ No se crean catálogos nuevos. Se incorpora únicamente el valor `ASIGNADA` al c
 - El script solo agrega navegación si no existe; no usa `DELETE` ni copia IDs identity.
 - Para perfiles que ya tenían `ADMIN_CONFIGURACION` visible, agrega únicamente las tres opciones hijas en `tblPerfilesNavegaciones`; no agrega permisos, no altera asignaciones existentes y no concede acceso RBAC nuevo.
 - El script contiene consultas de verificación y debe ejecutarse manualmente, con autorización del ambiente correspondiente.
+
+## Parámetros de alertas administrativas
+
+| Tabla | Código funcional | Descripción | Script SQL | Ambiente | Estado |
+|---|---|---|---|---|---|
+| `Configuracion.tblParametrosValores` | `CONFIGURACION_GENERAL` / `ALERTAS_*_DIAS` | Valores vigentes de los cuatro umbrales de Alertas Administrativas, relacionados con la cabecera `CONFIGURACION_GENERAL` | `database/pendientes/11_parametros_alertas_administrativas.sql` | Local / STC / Producción | Registrados localmente; script actualizado para otros ambientes; pendiente de ejecución controlada |
+
+El lector backend obtiene estos valores desde `tblParametrosValores.valorParametro`, valida vigencia y no utiliza `tblParametros.valorPredeterminado`. El script no crea cabeceras, no actualiza valores existentes y no se ejecuta automáticamente.

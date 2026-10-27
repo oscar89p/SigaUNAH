@@ -1,0 +1,29 @@
+# Matriz de alertas administrativas internas
+
+## Criterio de clasificación
+
+La viabilidad se refiere a poder identificar registros mediante datos existentes y consultas de solo lectura. No implica que la regla funcional, la severidad, el plazo de atención o el permiso estén aprobados.
+
+| Alerta | Regla propuesta | Tablas reales | Campos reales | Consulta o servicio reutilizable | Viabilidad | Riesgos | Decisiones funcionales pendientes |
+|---|---|---|---|---|---|---|---|
+| Solicitudes pendientes | Solicitud activa cuyo estado de catálogo sea `PENDIENTE`. Menos de `MEDIA_DIAS`: informativa; desde `MEDIA_DIAS` hasta `ALTA_DIAS`, inclusive: media; más de `ALTA_DIAS`: alta. | `Solicitudes.tblSolicitudes`, `Tipos.tblTiposValores`, `Beneficiarios.tblBeneficiarios`, `Beneficiarios.tblPersonas`. | `idSolicitud`, `codigoSolicitud`, `idBeneficiario`, `idEstadoSolicitud`, `fechaSolicitud`, `fechaRegistro`, `estadoSolicitud`; `codigoTipoValor`; datos de persona. | Módulo `alertas.repository.pending()` con umbrales de `Configuracion.tblParametros`; reutiliza joins de reportería. | **Implementable** | Los códigos de catálogo y parámetros activos deben validarse en SQL Server. | Confirmar fecha base institucional si se requiere cambiar `fechaSolicitud`. |
+| Solicitudes aprobadas sin asignación | Solicitud activa con estado `APROBADA` y sin fila de `tblAsignaciones` con `idSolicitud` coincidente y `esAsignacionVigente=1`. | `Solicitudes.tblSolicitudes`, `Tarjetas.tblAsignaciones`, `Beneficiarios.tblBeneficiarios`, `Tarjetas.tblTarjetas` opcionalmente. | `idSolicitud`, `idBeneficiario`, `idEstadoSolicitud`, `estadoSolicitud`; `idSolicitud`, `idBeneficiario`, `idTarjeta`, `esAsignacionVigente`; código y nombre del beneficiario. | `reportes.repository.requests()` con `codigoEstadoSolicitud=APROBADA` y `sinAsignacion=true`; `tarjetas.repository.validRequests()` expresa la misma exclusión. | **Implementable con ajustes** | “Aprobada” habilita la asignación en el backend, pero no define plazo ni obligación automática. Una asignación histórica no vigente no satisface la regla. | Plazo para considerar alerta; si se excluyen solicitudes con fechas solicitadas vencidas; prioridad; tratamiento de aprobación sin tarjeta disponible. |
+| Asignaciones próximas a vencer | Asignación con `esAsignacionVigente=1`, `fechaFinVigencia` no nula y dentro de un intervalo configurable desde la fecha actual. El valor 30 días es una propuesta, no una configuración implementada. | `Tarjetas.tblAsignaciones`, más tarjeta, solicitud y beneficiario. | `idAsignacion`, `idTarjeta`, `idSolicitud`, `idBeneficiario`, `esAsignacionVigente`, `fechaInicioVigencia`, `fechaFinVigencia`, `idEstadoAsignacion`. | `reportes.repository.assignments()` con `estado=proximas` y `proximasDias`; `AssignmentReport.diasRestantes`. | **Implementable** | El filtro actual acepta 1–365 y tiene default 15, no 30. La zona horaria y límites inclusivos deben ser explícitos. | Default institucional; inclusión del día actual; tratamiento de fecha nula; si se excluyen asignaciones vencidas pero aún marcadas vigentes. |
+| Asignaciones vencidas | Asignación con `esAsignacionVigente=1` y `fechaFinVigencia` anterior a la fecha actual. No se observó un código `VENCIDA` aplicado por el backend. | `Tarjetas.tblAsignaciones`, `Tipos.tblTiposValores`, y relaciones con tarjeta/solicitud/beneficiario. | `fechaFinVigencia`, `esAsignacionVigente`, `idEstadoAsignacion`, `fechaDevolucion`. | `reportes.repository.assignments()` con `estado=vencidas`; calcula `diasRestantes`. | **Implementable** | Puede existir una asignación vencida por fecha pero aún marcada vigente; la consulta no muta el registro. No debe confundirse con `finalizadas` (`esAsignacionVigente=0`). | Si vencida debe generar alerta cuando `esAsignacionVigente=0`; qué operación resuelve la alerta; si se requiere estado de catálogo adicional. |
+| Inconsistencias operativas | Detectar exclusivamente: tarjeta `DISPONIBLE` con asignación vigente; `ASIGNADA` sin asignación vigente; `BAJA` con asignación vigente; `BLOQUEADA` con asignación vigente. | `Tarjetas.tblTarjetas`, `Tarjetas.tblAsignaciones`, `Tipos.tblTiposValores`. | `idTarjeta`, `idEstadoTarjeta`, `codigoTipoValor`, `esAsignacionVigente`. | Endpoint `GET /api/v1/alertas/inconsistencias`, basado en `availabilityDiagnosticsQuery` y `database/pendientes/10_diagnostico_consistencia_tarjetas.sql`. | **Implementable** | No incluye fechas inválidas, beneficiario divergente ni reglas adicionales. | Validación de resultados contra SQL Server institucional. |
+
+## Relaciones que deben conservarse
+
+1. Una solicitud apunta a un beneficiario mediante `Solicitudes.tblSolicitudes.idBeneficiario`.
+2. Una asignación apunta simultáneamente a solicitud, beneficiario y tarjeta mediante `idSolicitud`, `idBeneficiario` e `idTarjeta`.
+3. La asignación vigente se identifica por `esAsignacionVigente=1` en las consultas actuales.
+4. La tarjeta obtiene su estado administrativo mediante `idEstadoTarjeta` y el catálogo `ESTADO_TARJETA`.
+5. La solicitud obtiene su estado mediante `idEstadoSolicitud` y el catálogo `ESTADO_SOLICITUD`.
+
+## Consultas de solo lectura
+
+Todas las reglas anteriores pueden expresarse con `SELECT`, `JOIN`, `OUTER APPLY`, `EXISTS` y filtros parametrizados. No es necesario crear una tabla de alertas para calcular el resultado actual. La persistencia solo sería necesaria para historial, asignación de responsables, comentarios o marcado de atención.
+
+## Alertas no sustentadas actualmente
+
+No se recomienda implementar, con la información actual, alertas de uso irregular, exceso de uso, fuera de horario o incumplimiento de perfiles de acceso. Aunque existen tablas y rutas de monitoreo, el repositorio no demuestra que los eventos externos estén completos ni define umbrales funcionales para esas alertas.

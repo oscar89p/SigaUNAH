@@ -164,7 +164,16 @@ h1 {
 .bo-layout .bo-toolbar select,
 .bo-layout .bo-form input:not([type="checkbox"]):not([type="radio"]),
 .bo-layout .bo-form select,
-.bo-layout .bo-form textarea { min-height: 40px; font-size: var(--siga-text-control); }
+.bo-layout .bo-form textarea { min-height: 44px; padding: 10px 12px; border: 1px solid var(--bo-line); border-radius: 6px; color: var(--bo-text); background: #fff; font-size: var(--siga-text-control); line-height: 1.35; }
+.bo-layout .bo-form input:not([type="checkbox"]):not([type="radio"]),
+.bo-layout .bo-form select { min-height: 44px; padding: 10px 12px; border: 1px solid var(--bo-line); border-radius: 6px; color: var(--bo-text); background: #fff; font-size: var(--siga-text-control); line-height: 1.35; }
+.bo-layout .bo-form select { padding-right: 36px; }
+.bo-layout .bo-form input:not([type="checkbox"]):not([type="radio"]):focus,
+.bo-layout .bo-form select:focus,
+.bo-layout .bo-form textarea:focus { outline: 2px solid rgb(0 90 135 / 16%); border-color: var(--bo-blue); }
+.bo-layout .bo-form input:not([type="checkbox"]):not([type="radio"]):disabled,
+.bo-layout .bo-form select:disabled,
+.bo-layout .bo-form textarea:disabled { color: var(--bo-muted); background: #f3f6f8; cursor: not-allowed; }
 .bo-layout .bo-form label,
 .bo-layout .reports-toolbar label,
 .bo-layout .administrative-reason { font-size: var(--siga-text-label); }

@@ -65,14 +65,14 @@ onMounted(async () => { await session.restore(); await Promise.all([loadCard(), 
 .administrative-panel { display: grid; gap: 24px; }
 .administrative-section-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 16px; }
 .administrative-section-head h2 { margin: 0 0 5px; }
-.administrative-section-head p { margin: 0; color: var(--bo-muted); font-size: 12px; line-height: 1.5; }
+.administrative-section-head p { margin: 0; color: var(--bo-muted); font-size: var(--siga-text-secondary); line-height: 1.5; }
 .administrative-form { gap: 6px; padding: 18px; border: 1px solid var(--bo-line); border-radius: 8px; background: #f8fafb; }
-.administrative-reason { display: grid; gap: 7px; color: var(--bo-dark); font-size: 12px; font-weight: 700; }
+.administrative-reason { display: grid; gap: 7px; color: var(--bo-dark); font-size: var(--siga-text-secondary); font-weight: 700; line-height: 1.35; }
 .administrative-reason span { color: var(--bo-muted); font-weight: 400; }
-.administrative-reason textarea { width: 100%; box-sizing: border-box; min-height: 128px; resize: vertical; padding: 11px 12px; border: 1px solid var(--bo-line); border-radius: 6px; color: var(--bo-text); background: #fff; font: inherit; font-size: 13px; line-height: 1.5; }
+.administrative-reason textarea { width: 100%; box-sizing: border-box; min-height: 128px; resize: vertical; padding: 11px 12px; border: 1px solid var(--bo-line); border-radius: 6px; color: var(--bo-text); background: #fff; font: inherit; font-size: var(--siga-text-control); line-height: 1.5; }
 .administrative-reason textarea:focus { outline: 2px solid rgb(0 90 135 / 16%); border-color: var(--bo-blue); }
 .administrative-reason textarea[aria-invalid="true"] { border-color: #b75b5b; }
-.administrative-help { margin: 0; color: var(--bo-muted); font-size: 11px; }
+.administrative-help { margin: 0; color: var(--bo-muted); font-size: var(--siga-text-secondary); line-height: 1.45; }
 .administrative-actions { justify-content: flex-end; margin-top: 10px; }
 .administrative-danger { color: #a03b3b; border-color: #e4bebe; background: #fff; }
 .bo-state-warning { border-color: #e8d49c; color: #785c13; background: #fff8df; }

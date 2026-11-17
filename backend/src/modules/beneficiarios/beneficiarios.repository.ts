@@ -42,8 +42,8 @@ export async function list(query: Query) {
   const where = query.search ? `WHERE ${["p.primerNombre", "p.primerApellido", "b.numeroCuenta", "b.codigoCarne"].map(beneficiaryLikeExpression).join(" OR ")}` : "";
   if (query.search) {
     const search = beneficiaryLikeParameter(query.search);
-    request.input("search", sql.NVarChar(150), search);
-    countRequest.input("search", sql.NVarChar(150), search);
+    request.input("search", sql.NVarChar(302), search);
+    countRequest.input("search", sql.NVarChar(302), search);
   }
   const direction = query.sortDirection === "desc" ? "DESC" : "ASC";
   const data = await request.query(`SELECT ${columns} ${from} ${where} ORDER BY ${sortColumns[query.sortBy]} ${direction} OFFSET @offset ROWS FETCH NEXT @pageSize ROWS ONLY`);
@@ -54,8 +54,8 @@ export async function list(query: Query) {
 export async function search(query: SearchQuery) {
   const pool = await getDatabasePool();
   const search = beneficiaryLikeParameter(query.search);
-  const request = pool.request().input("search", sql.NVarChar(150), search).input("offset", sql.Int, (query.page - 1) * query.pageSize).input("pageSize", sql.Int, query.pageSize);
-  const countRequest = pool.request().input("search", sql.NVarChar(150), search);
+  const request = pool.request().input("search", sql.NVarChar(302), search).input("offset", sql.Int, (query.page - 1) * query.pageSize).input("pageSize", sql.Int, query.pageSize);
+  const countRequest = pool.request().input("search", sql.NVarChar(302), search);
   const where = `WHERE b.estadoBeneficiario=1 AND (${["p.primerNombre", "p.segundoNombre", "p.primerApellido", "p.segundoApellido", "p.numeroIdentificacion", "b.codigoCarne", "b.numeroCuenta"].map(beneficiaryLikeExpression).join(" OR ")})`;
   const fields = `b.idBeneficiario, CONCAT_WS(' ', p.primerNombre,p.segundoNombre,p.primerApellido,p.segundoApellido) AS nombreCompleto, CASE WHEN p.numeroIdentificacion IS NULL THEN NULL ELSE CONCAT(REPLICATE('*', CASE WHEN LEN(p.numeroIdentificacion)>4 THEN LEN(p.numeroIdentificacion)-4 ELSE 0 END), RIGHT(p.numeroIdentificacion,4)) END AS identificacionEnmascarada, b.codigoCarne AS codigoBeneficiario, b.estadoBeneficiario, CASE WHEN b.numeroCuenta IS NULL THEN NULL ELSE CONCAT(REPLICATE('*', CASE WHEN LEN(b.numeroCuenta)>4 THEN LEN(b.numeroCuenta)-4 ELSE 0 END), RIGHT(b.numeroCuenta,4)) END AS cuentaEnmascarada`;
   const fromSearch = `FROM DbSigaUNAH.Beneficiarios.tblBeneficiarios b INNER JOIN DbSigaUNAH.Beneficiarios.tblPersonas p ON p.idPersona=b.idPersona`;

@@ -6,6 +6,7 @@ import { HttpError } from "../../shared/errors/http-error.js";
 import type { Create, Query, State, Update } from "./solicitudes.types.js";
 import type { AuthContext } from "../auth/auth-context.js";
 import { stringifyJsonSafe } from "../../shared/serialization/json.js";
+import { likeExpression, likePattern } from "../beneficiarios/search-utils.js";
 
 const columns = `
   s.idSolicitud, s.codigoSolicitud, s.idBeneficiario, s.idPeriodoAcademico, s.idTipoSolicitud,
@@ -39,7 +40,17 @@ export async function list(query: Query) {
   const request = pool.request().input("offset", sql.Int, (query.page - 1) * query.pageSize).input("pageSize", sql.Int, query.pageSize);
   const countRequest = pool.request();
   const conditions: string[] = [];
-  if (query.search) { conditions.push("(s.codigoSolicitud LIKE @search OR p.primerNombre LIKE @search OR p.primerApellido LIKE @search OR b.numeroCuenta LIKE @search)"); request.input("search", sql.NVarChar(150), `%${query.search}%`); countRequest.input("search", sql.NVarChar(150), `%${query.search}%`); }
+  const searchPattern = query.search ? likePattern(query.search) : "";
+  if (searchPattern) {
+    conditions.push(`(${[
+      likeExpression("s.codigoSolicitud"),
+      likeExpression("p.primerNombre", true),
+      likeExpression("p.primerApellido", true),
+      likeExpression("b.numeroCuenta")
+    ].join(" OR ")})`);
+    request.input("search", sql.NVarChar(302), searchPattern);
+    countRequest.input("search", sql.NVarChar(302), searchPattern);
+  }
   if (query.idEstadoSolicitud) { conditions.push("s.idEstadoSolicitud = @idEstadoSolicitud"); request.input("idEstadoSolicitud", sql.Int, query.idEstadoSolicitud); countRequest.input("idEstadoSolicitud", sql.Int, query.idEstadoSolicitud); }
   if (query.idBeneficiario) { conditions.push("s.idBeneficiario = @idBeneficiario"); request.input("idBeneficiario", sql.BigInt, query.idBeneficiario); countRequest.input("idBeneficiario", sql.BigInt, query.idBeneficiario); }
   const where = conditions.length ? `WHERE ${conditions.join(" AND ")}` : "";

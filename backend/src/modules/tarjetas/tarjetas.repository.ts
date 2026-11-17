@@ -6,6 +6,7 @@ import { validateAssignmentDates, type AssignmentInput, type AssignmentQuery, ty
 import { HttpError } from "../../shared/errors/http-error.js";
 import type { AuthContext } from "../auth/auth-context.js";
 import { stringifyJsonSafe } from "../../shared/serialization/json.js";
+import { likeExpression, likePattern } from "../beneficiarios/search-utils.js";
 
 const columns = `t.idTarjeta,t.codigoTarjeta,t.codigoExterno,t.numeroSerie,t.idEstadoTarjeta,t.idTipoTarjeta,t.fechaAdquisicion,t.fechaAlta,t.fechaBaja,t.motivoBaja,t.requiereRevision,t.observacionTarjeta,t.estadoTarjeta,t.usuarioRegistro,t.fechaRegistro,t.usuarioActualizacion,t.fechaActualizacion,tv.codigoTipoValor AS codigoEstadoTarjeta,tv.nombreTipoValor AS nombreEstadoTarjeta,tt.codigoTipoTarjeta,tt.nombreTipoTarjeta,a.idAsignacion,a.idSolicitud,a.idBeneficiario,a.fechaAsignacion,a.fechaInicioVigencia,a.fechaFinVigencia,a.idEstadoAsignacion,a.esAsignacionVigente,p.nombreBeneficiario,s.codigoSolicitud,b.numeroCuenta,e.nombreTipoValor AS nombreEstadoAsignacion,(SELECT STRING_AGG(CONVERT(nvarchar(max),pa.nombrePerfilAcceso),N', ') FROM DbSigaUNAH.Accesos.tblAsignacionesPerfilesAcceso ap INNER JOIN DbSigaUNAH.Accesos.tblPerfilesAcceso pa ON pa.idPerfilAcceso=ap.idPerfilAcceso WHERE ap.idAsignacion=a.idAsignacion AND ap.estadoAsignacionPerfilAcceso=1) AS perfilesAcceso`;
 const from = `FROM DbSigaUNAH.Tarjetas.tblTarjetas t INNER JOIN DbSigaUNAH.Tipos.tblTiposValores tv ON tv.idTipoValor=t.idEstadoTarjeta LEFT JOIN DbSigaUNAH.Tarjetas.tblTiposTarjetas tt ON tt.idTipoTarjeta=t.idTipoTarjeta LEFT JOIN DbSigaUNAH.Tarjetas.tblAsignaciones a ON a.idTarjeta=t.idTarjeta AND a.esAsignacionVigente=1 LEFT JOIN DbSigaUNAH.Solicitudes.tblSolicitudes s ON s.idSolicitud=a.idSolicitud LEFT JOIN DbSigaUNAH.Beneficiarios.tblBeneficiarios b ON b.idBeneficiario=a.idBeneficiario LEFT JOIN (SELECT b2.idBeneficiario, CONCAT(p2.primerNombre,' ',p2.primerApellido) AS nombreBeneficiario FROM DbSigaUNAH.Beneficiarios.tblBeneficiarios b2 INNER JOIN DbSigaUNAH.Beneficiarios.tblPersonas p2 ON p2.idPersona=b2.idPersona) p ON p.idBeneficiario=a.idBeneficiario LEFT JOIN DbSigaUNAH.Tipos.tblTiposValores e ON e.idTipoValor=a.idEstadoAsignacion`;
@@ -13,7 +14,39 @@ const sortColumns = { idTarjeta: "t.idTarjeta", codigoTarjeta: "t.codigoTarjeta"
 export function assignmentAdministrativeReason(codigoSolicitud: string): string { return `Asignación de tarjeta mediante solicitud ${codigoSolicitud}`; }
 export function returnAdministrativeReason(codigoSolicitud: string): string { return `Devolución de tarjeta correspondiente a la solicitud ${codigoSolicitud}`; }
 
-export async function list(query: Query) { const pool=await getDatabasePool(); const request=pool.request().input("offset",sql.Int,(query.page-1)*query.pageSize).input("pageSize",sql.Int,query.pageSize); const countRequest=pool.request(); const predicates:string[]=[]; if(query.search){predicates.push("(t.codigoTarjeta LIKE @search OR t.codigoExterno LIKE @search OR t.numeroSerie LIKE @search OR p.nombreBeneficiario LIKE @search OR s.codigoSolicitud LIKE @search)");request.input("search",sql.NVarChar(150),`%${query.search}%`);countRequest.input("search",sql.NVarChar(150),`%${query.search}%`);} if(query.estado!=="all"){predicates.push("t.estadoTarjeta=@active");request.input("active",sql.Bit,query.estado==="active");countRequest.input("active",sql.Bit,query.estado==="active");} if(query.idBeneficiario){predicates.push("a.idBeneficiario=@beneficiary");request.input("beneficiary",sql.BigInt,query.idBeneficiario);countRequest.input("beneficiary",sql.BigInt,query.idBeneficiario);} const where=predicates.length?`WHERE ${predicates.join(" AND ")}`:""; const direction=query.sortDirection==="desc"?"DESC":"ASC"; const result=await request.query(`SELECT ${columns} ${from} ${where} ORDER BY ${sortColumns[query.sortBy]} ${direction},t.idTarjeta OFFSET @offset ROWS FETCH NEXT @pageSize ROWS ONLY`); const count=await countRequest.query<{total:number}>(`SELECT COUNT(1) AS total ${from} ${where}`); return {items:result.recordset,total:count.recordset[0]?.total??0}; }
+export async function list(query: Query) {
+  const pool = await getDatabasePool();
+  const request = pool.request().input("offset", sql.Int, (query.page - 1) * query.pageSize).input("pageSize", sql.Int, query.pageSize);
+  const countRequest = pool.request();
+  const predicates: string[] = [];
+  const searchPattern = query.search ? likePattern(query.search) : "";
+  if (searchPattern) {
+    predicates.push(`(${[
+      likeExpression("t.codigoTarjeta"),
+      likeExpression("t.codigoExterno"),
+      likeExpression("t.numeroSerie"),
+      likeExpression("p.nombreBeneficiario", true),
+      likeExpression("s.codigoSolicitud")
+    ].join(" OR ")})`);
+    request.input("search", sql.NVarChar(302), searchPattern);
+    countRequest.input("search", sql.NVarChar(302), searchPattern);
+  }
+  if (query.estado !== "all") {
+    predicates.push("t.estadoTarjeta=@active");
+    request.input("active", sql.Bit, query.estado === "active");
+    countRequest.input("active", sql.Bit, query.estado === "active");
+  }
+  if (query.idBeneficiario) {
+    predicates.push("a.idBeneficiario=@beneficiary");
+    request.input("beneficiary", sql.BigInt, query.idBeneficiario);
+    countRequest.input("beneficiary", sql.BigInt, query.idBeneficiario);
+  }
+  const where = predicates.length ? `WHERE ${predicates.join(" AND ")}` : "";
+  const direction = query.sortDirection === "desc" ? "DESC" : "ASC";
+  const result = await request.query(`SELECT ${columns} ${from} ${where} ORDER BY ${sortColumns[query.sortBy]} ${direction},t.idTarjeta OFFSET @offset ROWS FETCH NEXT @pageSize ROWS ONLY`);
+  const count = await countRequest.query<{ total: number }>(`SELECT COUNT(1) AS total ${from} ${where}`);
+  return { items: result.recordset, total: count.recordset[0]?.total ?? 0 };
+}
 export async function find(id: bigint) { const pool=await getDatabasePool(); const result=await pool.request().input("id",sql.BigInt,id).query(`SELECT ${columns} ${from} WHERE t.idTarjeta=@id`); return result.recordset[0]??null; }
 export async function options() { const pool=await getDatabasePool(); const [states,types,vigencias,assignmentStates,beneficiaries,requests]=await Promise.all([pool.request().query(`SELECT tv.idTipoValor,tv.codigoTipoValor,tv.nombreTipoValor FROM DbSigaUNAH.Tipos.tblTiposValores tv INNER JOIN DbSigaUNAH.Tipos.tblTipos t ON t.idTipo=tv.idTipo WHERE t.codigoTipo='ESTADO_TARJETA' AND tv.estadoTipoValor=1 ORDER BY tv.ordenTipoValor,tv.nombreTipoValor`),pool.request().query(`SELECT idTipoTarjeta,codigoTipoTarjeta,nombreTipoTarjeta FROM DbSigaUNAH.Tarjetas.tblTiposTarjetas WHERE estadoTipoTarjeta=1 ORDER BY nombreTipoTarjeta`),pool.request().query(`SELECT tv.idTipoValor,tv.codigoTipoValor,tv.nombreTipoValor FROM DbSigaUNAH.Tipos.tblTiposValores tv INNER JOIN DbSigaUNAH.Tipos.tblTipos t ON t.idTipo=tv.idTipo WHERE t.codigoTipo='TIPO_VIGENCIA' AND tv.estadoTipoValor=1 ORDER BY tv.ordenTipoValor,tv.nombreTipoValor`),pool.request().query(`SELECT tv.idTipoValor,tv.codigoTipoValor,tv.nombreTipoValor FROM DbSigaUNAH.Tipos.tblTiposValores tv INNER JOIN DbSigaUNAH.Tipos.tblTipos t ON t.idTipo=tv.idTipo WHERE t.codigoTipo='ESTADO_ASIGNACION' AND tv.estadoTipoValor=1 ORDER BY tv.ordenTipoValor,tv.nombreTipoValor`),pool.request().query(`SELECT b.idBeneficiario,CONCAT(p.primerNombre,' ',p.primerApellido) AS nombreBeneficiario,b.numeroCuenta FROM DbSigaUNAH.Beneficiarios.tblBeneficiarios b INNER JOIN DbSigaUNAH.Beneficiarios.tblPersonas p ON p.idPersona=b.idPersona WHERE b.estadoBeneficiario=1 ORDER BY p.primerApellido,p.primerNombre`),pool.request().query(`SELECT s.idSolicitud,s.codigoSolicitud,s.idBeneficiario,CONCAT(p.primerNombre,' ',p.primerApellido) AS nombreBeneficiario FROM DbSigaUNAH.Solicitudes.tblSolicitudes s INNER JOIN DbSigaUNAH.Beneficiarios.tblBeneficiarios b ON b.idBeneficiario=s.idBeneficiario INNER JOIN DbSigaUNAH.Beneficiarios.tblPersonas p ON p.idPersona=b.idPersona WHERE s.estadoSolicitud=1 ORDER BY s.fechaRegistro DESC`)]); return {estadosTarjeta:states.recordset,tiposTarjeta:types.recordset,tiposVigencia:vigencias.recordset,estadosAsignacion:assignmentStates.recordset,beneficiarios:beneficiaries.recordset,solicitudes:requests.recordset}; }
 

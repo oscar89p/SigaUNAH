@@ -38,13 +38,13 @@ function getRowKey(row: Record<string, unknown>, index: number) { return props.r
 
 <template>
   <section class="siga-grid" :aria-busy="loading">
-    <div v-if="loading" class="bo-state siga-grid-state">Cargando registros...</div>
-    <div v-else-if="error" class="bo-state bo-state-error siga-grid-state"><strong>{{ error }}</strong><button class="bo-btn" @click="$emit('page', currentPage)">Reintentar</button></div>
-    <div v-else-if="!rows.length" class="bo-state siga-grid-state">{{ emptyText }}</div>
-    <div v-else class="siga-grid-scroll">
-      <table class="siga-grid-table">
+    <div v-if="loading" class="bo-state siga-grid-state" role="status" aria-live="polite">Cargando registros...</div>
+    <div v-else-if="error" class="bo-state bo-state-error siga-grid-state" role="alert"><strong>{{ error }}</strong><button class="bo-btn" type="button" @click="$emit('page', currentPage)">Reintentar</button></div>
+    <div v-else-if="!rows.length" class="bo-state siga-grid-state" role="status">{{ emptyText }}</div>
+    <div v-else class="siga-grid-scroll" role="region" aria-label="Resultados; puede desplazarse horizontalmente para ver todas las columnas" tabindex="0">
+      <table class="siga-grid-table" aria-label="Resultados">
         <colgroup><col v-for="column in columns" :key="column.key" :style="{ width: column.width ?? 'auto' }" /><col v-if="$slots.actions" class="siga-grid-actions-col" /></colgroup>
-        <thead><tr><th v-for="column in columns" :key="column.key" :class="{ 'is-numeric': column.numeric }" :style="{ textAlign: column.align ?? (column.numeric ? 'right' : 'left') }">{{ column.label }}</th><th v-if="$slots.actions">Acciones</th></tr></thead>
+        <thead><tr><th v-for="column in columns" :key="column.key" scope="col" :class="{ 'is-numeric': column.numeric }" :style="{ textAlign: column.align ?? (column.numeric ? 'right' : 'left') }">{{ column.label }}</th><th v-if="$slots.actions" scope="col">Acciones</th></tr></thead>
          <tbody><tr v-for="(row, index) in rows" :key="getRowKey(row, index)"><td v-for="column in columns" :key="column.key" :class="[`siga-grid-cell-${column.key}`, { 'is-numeric': column.numeric }]" :style="{ textAlign: column.align ?? (column.numeric ? 'right' : 'left') }" :title="String(row[column.key] ?? '—')"><slot :name="`cell-${column.key}`" :row="row" :value="row[column.key]">{{ row[column.key] ?? "—" }}</slot></td><td v-if="$slots.actions"><slot name="actions" :row="row" /></td></tr></tbody>
       </table>
     </div>

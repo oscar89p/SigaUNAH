@@ -19,6 +19,7 @@ function syncActiveParent() {
 function onGroupKeydown(event: KeyboardEvent) {
   if (event.key === "ArrowRight" && !expanded.value) { event.preventDefault(); expanded.value = true; }
   if (event.key === "ArrowLeft" && expanded.value) { event.preventDefault(); expanded.value = false; }
+  if (event.key === "Escape" && expanded.value) { event.preventDefault(); expanded.value = false; }
 }
 onMounted(syncActiveParent);
 watch(() => route.path, syncActiveParent);

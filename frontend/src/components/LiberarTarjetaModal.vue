@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { computed, onMounted, ref } from "vue";
+import { useDialogAccessibility } from "@/composables/useDialogAccessibility";
 import { ApiError } from "@/services/http";
 import { findReturnAssignmentState, getAssignmentOptions, isAssignmentVigente, returnAsignacion, type Asignacion } from "@/services/tarjetas";
 import type { Beneficiary } from "@/services/beneficiarios";
@@ -7,6 +8,8 @@ import type { Beneficiary } from "@/services/beneficiarios";
 const props = defineProps<{ assignment: Asignacion; beneficiary: Beneficiary }>();
 const emit = defineEmits<{ (event: "close"): void; (event: "released", assignment: Asignacion): void }>();
 const saving = ref(false); const loading = ref(true); const error = ref(""); const comment = ref(""); const stateId = ref(0);
+const dialog = ref<HTMLElement | null>(null);
+useDialogAccessibility(dialog, computed(() => true), () => { if (!saving.value) emit("close"); });
 const message = (cause: unknown) => cause instanceof ApiError ? cause.message : "No fue posible liberar la tarjeta. Intente nuevamente.";
 const name = computed(() => [props.beneficiary.primerNombre, props.beneficiary.segundoNombre, props.beneficiary.primerApellido, props.beneficiary.segundoApellido].filter(Boolean).join(" "));
 const date = (value: string | null | undefined) => value ? value.slice(0, 10) : "—";
@@ -15,10 +18,10 @@ async function release() { if (!isAssignmentVigente(props.assignment.esAsignacio
 onMounted(() => { void load(); });
 </script>
 <template>
-  <div class="bo-modal-backdrop" @click.self="!saving && emit('close')"><section class="bo-modal release-modal" role="dialog" aria-modal="true" aria-labelledby="release-title">
+  <div class="bo-modal-backdrop" @click.self="!saving && emit('close')"><section ref="dialog" class="bo-modal release-modal" role="dialog" aria-modal="true" aria-labelledby="release-title" tabindex="-1">
     <header><div><span class="bo-eyebrow">Tarjetas asignadas</span><h2 id="release-title">Liberar tarjeta</h2><p>La asignación finalizará y permanecerá en el historial.</p></div><button class="bo-close" type="button" :disabled="saving" @click="emit('close')">×</button></header>
      <div class="release-details"><div><small>Código de tarjeta</small><strong>{{ assignment.codigoTarjeta }}</strong></div><div><small>Serie</small><strong>{{ assignment.numeroSerie ?? "—" }}</strong></div><div><small>Beneficiario actual</small><strong>{{ name }}</strong></div><div><small>Fecha de asignación</small><strong>{{ date(assignment.fechaAsignacion) }}</strong></div><div class="release-event"><small>Evento</small><strong>Liberación de tarjeta</strong></div></div>
-     <label class="release-reason">Comentario / Justificación<textarea v-model="comment" rows="4" maxlength="1000" required placeholder="Documente la justificación de la liberación" /></label>
+     <label class="release-reason">Comentario / Justificación<textarea v-model="comment" rows="4" maxlength="1000" required data-dialog-initial-focus placeholder="Documente la justificación de la liberación" /></label>
     <p v-if="loading" class="bo-form-note">Validando el estado de devolución...</p><p v-if="error" class="bo-form-error" role="alert">{{ error }}</p>
      <footer><button class="bo-btn" type="button" :disabled="saving" @click="emit('close')">Cancelar</button><button class="bo-btn bo-btn-primary" type="button" :disabled="loading || saving || !stateId || !isAssignmentVigente(assignment.esAsignacionVigente) || !comment.trim()" @click="release">{{ saving ? "Liberando..." : "Confirmar liberación" }}</button></footer>
   </section></div>

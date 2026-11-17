@@ -98,6 +98,28 @@ describe("auth policies", () => {
     expect(recordAttempt).toHaveBeenCalledOnce();
   });
 
+  it("returns 401 for an incorrect password", async () => {
+    vi.spyOn(repository, "findUser").mockResolvedValue({ idUsuario: 7, nombreUsuario: "Usuario", nombreAcceso: "prueba", claveHash: "$argon2id$v=19$m=65536,p=4,t=3$invalid$invalid", tipoAutenticacion: "LOCAL", intentosFallidos: 0, fechaBloqueo: null, estadoUsuario: true });
+    vi.spyOn(repository, "registerFailure").mockResolvedValue(undefined);
+    const recordAttempt = vi.spyOn(repository, "recordAttempt").mockResolvedValue(undefined);
+    await expect(login({ usuario: "prueba", password: "incorrecta" }, { headers: {}, setCookie: vi.fn() })).rejects.toMatchObject({ statusCode: 401 });
+    expect(recordAttempt).toHaveBeenCalledWith("prueba", 7, false, "CREDENCIALES_INVALIDAS", undefined, undefined);
+  });
+
+  it("returns 401 for an inactive local user", async () => {
+    vi.spyOn(repository, "findUser").mockResolvedValue({ idUsuario: 8, nombreUsuario: "Inactivo", nombreAcceso: "inactivo", claveHash: "hash", tipoAutenticacion: "LOCAL", intentosFallidos: 0, fechaBloqueo: null, estadoUsuario: false });
+    const recordAttempt = vi.spyOn(repository, "recordAttempt").mockResolvedValue(undefined);
+    await expect(login({ usuario: "inactivo", password: "cualquier" }, { headers: {}, setCookie: vi.fn() })).rejects.toMatchObject({ statusCode: 401 });
+    expect(recordAttempt).toHaveBeenCalledWith("inactivo", 8, false, "CREDENCIALES_INVALIDAS", undefined, undefined);
+  });
+
+  it("returns 423 for a currently blocked user", async () => {
+    vi.spyOn(repository, "findUser").mockResolvedValue({ idUsuario: 9, nombreUsuario: "Bloqueado", nombreAcceso: "bloqueado", claveHash: "hash", tipoAutenticacion: "LOCAL", intentosFallidos: 5, fechaBloqueo: new Date(Date.now() + 60_000), estadoUsuario: true });
+    const recordAttempt = vi.spyOn(repository, "recordAttempt").mockResolvedValue(undefined);
+    await expect(login({ usuario: "bloqueado", password: "cualquier" }, { headers: {}, setCookie: vi.fn() })).rejects.toMatchObject({ statusCode: 423 });
+    expect(recordAttempt).toHaveBeenCalledWith("bloqueado", 9, false, "USUARIO_BLOQUEADO", undefined, undefined);
+  });
+
   it("logs in with a local account and persists the session", async () => {
     const passwordHash = await argon2.hash("ClaveSegura123");
     vi.spyOn(repository, "findUser").mockResolvedValue({

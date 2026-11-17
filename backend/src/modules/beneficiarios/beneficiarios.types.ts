@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { institutionalEmailSchema, legacyInstitutionalEmailSchema } from "./institutional-email.js";
 
 const user = z.string().trim().min(1).max(90);
 const nullableText = (max: number) => z.string().trim().max(max).nullable().optional();
@@ -12,6 +13,8 @@ export const querySchema = z.object({
   sortDirection: z.enum(["asc", "desc"]).default("asc")
 });
 export const searchSchema = z.object({ page: z.coerce.number().int().min(1).default(1), pageSize: z.coerce.number().int().min(1).max(25).default(10), search: z.string().trim().min(1).max(150) });
+export const accountAvailabilitySchema = z.object({ numeroCuenta: z.string().trim().min(1).max(20), idBeneficiario: z.coerce.bigint().positive().optional() });
+export const optionsQuerySchema = z.object({ idBeneficiario: z.coerce.bigint().positive().optional() });
 
 const personSchema = z.object({
   primerNombre: z.string().trim().min(1).max(80),
@@ -28,13 +31,14 @@ const beneficiaryFields = z.object({
   idTipoBeneficiario: z.number().int().positive(),
   idCarrera: z.number().int().positive().nullable().optional(),
   numeroCuenta: nullableText(20),
-  correoInstitucional: nullableText(150),
+  correoInstitucional: institutionalEmailSchema.nullable().optional(),
   codigoCarne: nullableText(50),
   estadoAcademico: nullableText(30)
 });
 
 export const createSchema = z.object({ person: personSchema, beneficiary: beneficiaryFields, usuarioRegistro: user });
-export const updateSchema = z.object({ person: personSchema, beneficiary: beneficiaryFields, usuarioActualizacion: user });
+const updateBeneficiaryFields = beneficiaryFields.extend({ correoInstitucional: legacyInstitutionalEmailSchema });
+export const updateSchema = z.object({ person: personSchema, beneficiary: updateBeneficiaryFields, usuarioActualizacion: user });
 export const stateSchema = z.object({ estadoBeneficiario: z.boolean(), usuarioActualizacion: user });
 export const conditionQuerySchema = z.object({ page: z.coerce.number().int().min(1).default(1), pageSize: z.coerce.number().int().min(1).max(100).default(10), search: z.string().trim().max(150).optional(), estado: z.enum(["all", "active", "inactive"]).default("all") });
 const conditionFields = z.object({ idTipoCondicion: z.number().int().positive(), descripcionCondicion: nullableText(1000), esTemporal: z.boolean().default(false), fechaInicio: z.coerce.date().nullable().optional(), fechaFinEstimada: z.coerce.date().nullable().optional(), requiereRevision: z.boolean().default(false) }).superRefine((value, context) => { if (value.fechaInicio && value.fechaFinEstimada && value.fechaFinEstimada < value.fechaInicio) context.addIssue({ code: "custom", path: ["fechaFinEstimada"], message: "La fecha final no puede ser anterior a la inicial" }); });
@@ -45,5 +49,7 @@ export type Create = z.infer<typeof createSchema>;
 export type Update = z.infer<typeof updateSchema>;
 export type State = z.infer<typeof stateSchema>;
 export type SearchQuery = z.infer<typeof searchSchema>;
+export type AccountAvailabilityQuery = z.infer<typeof accountAvailabilitySchema>;
+export type OptionsQuery = z.infer<typeof optionsQuerySchema>;
 export type ConditionQuery = z.infer<typeof conditionQuerySchema>;
 export type ConditionInput = z.infer<typeof conditionSchema>;

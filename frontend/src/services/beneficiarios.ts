@@ -8,6 +8,7 @@ export interface Beneficiary {
   codigoTipoBeneficiario: string; nombreTipoBeneficiario: string; codigoCarrera: string | null; nombreCarrera: string | null;
 }
 export interface BeneficiaryOptions { tiposBeneficiario: Array<{ idTipoValor: number; codigoTipoValor: string; nombreTipoValor: string }>; carreras: Array<{ idCarrera: number; codigoCarrera: string; nombreCarrera: string }> }
+export interface AccountAvailability { disponible: boolean }
 export interface BeneficiarySearchResult { idBeneficiario: number; nombreCompleto: string; identificacionEnmascarada: string | null; codigoBeneficiario: string | null; estadoBeneficiario: boolean; cuentaEnmascarada: string | null }
 export interface BeneficiaryCondition { idBeneficiarioCondicion: number | string; idBeneficiario: number | string; idTipoCondicion: number; codigoTipoCondicion: string; nombreTipoCondicion: string; descripcionCondicion: string | null; esTemporal: boolean; fechaInicio: string | null; fechaFinEstimada: string | null; requiereRevision: boolean; estadoBeneficiarioCondicion: boolean }
 export interface ConditionOption { idTipoValor: number; codigoTipoValor: string; nombreTipoValor: string }
@@ -16,7 +17,12 @@ const query = (search: string, page: number) => new URLSearchParams({ page: Stri
 export const listBeneficiaries = (search: string, page = 1) => get<Paginated<Beneficiary>>(`/api/v1/beneficiarios?${query(search, page)}`);
 export const getBeneficiary = (id: number | string) => get<Beneficiary>(`/api/v1/beneficiarios/${id}`);
 export const searchBeneficiaries = (search: string, page = 1, signal?: AbortSignal) => get<Paginated<BeneficiarySearchResult>>(`/api/v1/beneficiarios/busqueda?${new URLSearchParams({ search, page: String(page), pageSize: "10" })}`, signal);
-export const getBeneficiaryOptions = () => get<BeneficiaryOptions>("/api/v1/beneficiarios/opciones");
+export const getBeneficiaryOptions = (idBeneficiario?: number | string) => get<BeneficiaryOptions>(`/api/v1/beneficiarios/opciones${idBeneficiario === undefined ? "" : `?idBeneficiario=${encodeURIComponent(String(idBeneficiario))}`}`);
+export const checkBeneficiaryAccount = (numeroCuenta: string, idBeneficiario?: number) => {
+  const params = new URLSearchParams({ numeroCuenta: numeroCuenta.trim() });
+  if (idBeneficiario !== undefined) params.set("idBeneficiario", String(idBeneficiario));
+  return get<AccountAvailability>(`/api/v1/beneficiarios/numero-cuenta/disponibilidad?${params}`);
+};
 export const createBeneficiary = (payload: BeneficiaryPayload) => post<Beneficiary>("/api/v1/beneficiarios", { ...payload, usuarioRegistro: "backoffice" });
 export const updateBeneficiary = (id: number, payload: BeneficiaryPayload) => put<Beneficiary>(`/api/v1/beneficiarios/${id}`, { ...payload, usuarioActualizacion: "backoffice" });
 export const toggleBeneficiary = (id: number, estadoBeneficiario: boolean) => patch<Beneficiary>(`/api/v1/beneficiarios/${id}/estado`, { estadoBeneficiario, usuarioActualizacion: "backoffice" });

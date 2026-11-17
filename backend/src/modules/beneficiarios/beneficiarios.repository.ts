@@ -3,9 +3,10 @@ import sql from "mssql";
 import { getDatabasePool } from "../../shared/database/pool.js";
 import { mapSqlError } from "../../shared/database/sql-error.js";
 import { HttpError } from "../../shared/errors/http-error.js";
-import type { ConditionInput, ConditionQuery, Create, Query, SearchQuery, State, Update } from "./beneficiarios.types.js";
+import type { AccountAvailabilityQuery, ConditionInput, ConditionQuery, Create, OptionsQuery, Query, SearchQuery, State, Update } from "./beneficiarios.types.js";
 import type { AuthContext } from "../auth/auth-context.js";
 import { stringifyJsonSafe } from "../../shared/serialization/json.js";
+import { beneficiaryLikeExpression, beneficiaryLikeParameter } from "./search-utils.js";
 
 const columns = `
   b.idBeneficiario, b.idPersona, b.idTipoBeneficiario, b.idCarrera,
@@ -38,10 +39,11 @@ export async function list(query: Query) {
   const pool = await getDatabasePool();
   const request = pool.request().input("offset", sql.Int, (query.page - 1) * query.pageSize).input("pageSize", sql.Int, query.pageSize);
   const countRequest = pool.request();
-  const where = query.search ? "WHERE p.primerNombre LIKE @search OR p.primerApellido LIKE @search OR b.numeroCuenta LIKE @search OR b.codigoCarne LIKE @search" : "";
+  const where = query.search ? `WHERE ${["p.primerNombre", "p.primerApellido", "b.numeroCuenta", "b.codigoCarne"].map(beneficiaryLikeExpression).join(" OR ")}` : "";
   if (query.search) {
-    request.input("search", sql.NVarChar(150), `%${query.search}%`);
-    countRequest.input("search", sql.NVarChar(150), `%${query.search}%`);
+    const search = beneficiaryLikeParameter(query.search);
+    request.input("search", sql.NVarChar(150), search);
+    countRequest.input("search", sql.NVarChar(150), search);
   }
   const direction = query.sortDirection === "desc" ? "DESC" : "ASC";
   const data = await request.query(`SELECT ${columns} ${from} ${where} ORDER BY ${sortColumns[query.sortBy]} ${direction} OFFSET @offset ROWS FETCH NEXT @pageSize ROWS ONLY`);
@@ -51,14 +53,43 @@ export async function list(query: Query) {
 
 export async function search(query: SearchQuery) {
   const pool = await getDatabasePool();
-  const request = pool.request().input("search", sql.NVarChar(150), `%${query.search}%`).input("offset", sql.Int, (query.page - 1) * query.pageSize).input("pageSize", sql.Int, query.pageSize);
-  const countRequest = pool.request().input("search", sql.NVarChar(150), `%${query.search}%`);
-  const where = "WHERE b.estadoBeneficiario=1 AND (p.primerNombre LIKE @search OR p.segundoNombre LIKE @search OR p.primerApellido LIKE @search OR p.segundoApellido LIKE @search OR p.numeroIdentificacion LIKE @search OR b.codigoCarne LIKE @search OR b.numeroCuenta LIKE @search)";
+  const search = beneficiaryLikeParameter(query.search);
+  const request = pool.request().input("search", sql.NVarChar(150), search).input("offset", sql.Int, (query.page - 1) * query.pageSize).input("pageSize", sql.Int, query.pageSize);
+  const countRequest = pool.request().input("search", sql.NVarChar(150), search);
+  const where = `WHERE b.estadoBeneficiario=1 AND (${["p.primerNombre", "p.segundoNombre", "p.primerApellido", "p.segundoApellido", "p.numeroIdentificacion", "b.codigoCarne", "b.numeroCuenta"].map(beneficiaryLikeExpression).join(" OR ")})`;
   const fields = `b.idBeneficiario, CONCAT_WS(' ', p.primerNombre,p.segundoNombre,p.primerApellido,p.segundoApellido) AS nombreCompleto, CASE WHEN p.numeroIdentificacion IS NULL THEN NULL ELSE CONCAT(REPLICATE('*', CASE WHEN LEN(p.numeroIdentificacion)>4 THEN LEN(p.numeroIdentificacion)-4 ELSE 0 END), RIGHT(p.numeroIdentificacion,4)) END AS identificacionEnmascarada, b.codigoCarne AS codigoBeneficiario, b.estadoBeneficiario, CASE WHEN b.numeroCuenta IS NULL THEN NULL ELSE CONCAT(REPLICATE('*', CASE WHEN LEN(b.numeroCuenta)>4 THEN LEN(b.numeroCuenta)-4 ELSE 0 END), RIGHT(b.numeroCuenta,4)) END AS cuentaEnmascarada`;
   const fromSearch = `FROM DbSigaUNAH.Beneficiarios.tblBeneficiarios b INNER JOIN DbSigaUNAH.Beneficiarios.tblPersonas p ON p.idPersona=b.idPersona`;
   const data = await request.query(`SELECT ${fields} ${fromSearch} ${where} ORDER BY p.primerApellido,p.primerNombre,b.idBeneficiario OFFSET @offset ROWS FETCH NEXT @pageSize ROWS ONLY`);
   const total = await countRequest.query<{ total: number }>(`SELECT COUNT(1) AS total ${fromSearch} ${where}`);
   return { items: data.recordset, total: total.recordset[0]?.total ?? 0 };
+}
+
+export async function accountAvailability(query: AccountAvailabilityQuery) {
+  const pool = await getDatabasePool();
+  const result = await pool.request()
+    .input("account", sql.NVarChar(20), query.numeroCuenta.trim())
+    .input("beneficiaryId", sql.BigInt, query.idBeneficiario ?? null)
+    .query<{ idBeneficiario: bigint }>("SELECT TOP (1) idBeneficiario FROM DbSigaUNAH.Beneficiarios.tblBeneficiarios WHERE numeroCuenta=@account AND (@beneficiaryId IS NULL OR idBeneficiario<>@beneficiaryId)");
+  return { disponible: result.recordset.length === 0 };
+}
+
+async function assertAccountAvailable(request: sql.Request, account: string | null | undefined, beneficiaryId?: bigint) {
+  const normalized = account?.trim();
+  if (!normalized) return;
+  const result = await request
+    .input("accountCheck", sql.NVarChar(20), normalized)
+    .input("accountBeneficiaryId", sql.BigInt, beneficiaryId ?? null)
+    .query("SELECT TOP (1) idBeneficiario FROM DbSigaUNAH.Beneficiarios.tblBeneficiarios WITH (UPDLOCK, HOLDLOCK) WHERE numeroCuenta=@accountCheck AND (@accountBeneficiaryId IS NULL OR idBeneficiario<>@accountBeneficiaryId)");
+  if (result.recordset.length) throw new HttpError(409, "El número de cuenta ya está registrado");
+}
+
+function mapBeneficiaryError(error: unknown): never {
+  const message = error instanceof Error ? error.message : "";
+  const number = typeof error === "object" && error !== null && "number" in error ? (error as { number?: number }).number : undefined;
+  if ((number === 2601 || number === 2627) && /numeroCuenta|ukBeneficiario_NumeroCuenta/i.test(message)) {
+    throw new HttpError(409, "El número de cuenta ya está registrado", { cause: error });
+  }
+  return mapSqlError(error);
 }
 
 export async function find(id: bigint) {
@@ -67,13 +98,22 @@ export async function find(id: bigint) {
   return result.recordset[0] ?? null;
 }
 
-export async function options() {
+export async function options(query: OptionsQuery, proseneContext: boolean) {
   const pool = await getDatabasePool();
+  const typeFilter = proseneContext ? "AND (tv.codigoTipoValor IN ('ESTUDIANTE','VISITANTE') OR (@beneficiaryId IS NOT NULL AND tv.idTipoValor=(SELECT idTipoBeneficiario FROM DbSigaUNAH.Beneficiarios.tblBeneficiarios WHERE idBeneficiario=@beneficiaryId)))" : "";
+  const stateFilter = proseneContext ? "" : "AND tv.estadoTipoValor = 1";
+  const typeRequest = pool.request().input("beneficiaryId", sql.BigInt, query.idBeneficiario ?? null);
   const [types, careers] = await Promise.all([
-    pool.request().query(`SELECT tv.idTipoValor, tv.codigoTipoValor, tv.nombreTipoValor FROM DbSigaUNAH.Tipos.tblTiposValores tv INNER JOIN DbSigaUNAH.Tipos.tblTipos t ON t.idTipo = tv.idTipo WHERE t.codigoTipo = 'TIPO_BENEFICIARIO' AND t.estadoTipo = 1 AND tv.estadoTipoValor = 1 ORDER BY tv.nombreTipoValor`),
+    typeRequest.query(`SELECT tv.idTipoValor, tv.codigoTipoValor, tv.nombreTipoValor FROM DbSigaUNAH.Tipos.tblTiposValores tv INNER JOIN DbSigaUNAH.Tipos.tblTipos t ON t.idTipo = tv.idTipo WHERE t.codigoTipo = 'TIPO_BENEFICIARIO' AND t.estadoTipo = 1 ${stateFilter} ${typeFilter} ORDER BY tv.ordenTipoValor,tv.nombreTipoValor`),
     pool.request().query(`SELECT idCarrera, codigoCarrera, nombreCarrera FROM DbSigaUNAH.Academico.tblCarreras WHERE estadoCarrera = 1 ORDER BY nombreCarrera`)
   ]);
   return { tiposBeneficiario: types.recordset, carreras: careers.recordset };
+}
+
+async function assertProseneType(request: sql.Request, idTipoBeneficiario: number, proseneContext: boolean) {
+  if (!proseneContext) return;
+  const result = await request.input("beneficiaryType", sql.Int, idTipoBeneficiario).query("SELECT tv.idTipoValor FROM DbSigaUNAH.Tipos.tblTiposValores tv INNER JOIN DbSigaUNAH.Tipos.tblTipos t ON t.idTipo=tv.idTipo WHERE tv.idTipoValor=@beneficiaryType AND t.codigoTipo='TIPO_BENEFICIARIO' AND tv.codigoTipoValor IN ('ESTUDIANTE','VISITANTE')");
+  if (!result.recordset.length) throw new HttpError(403, "El perfil PROSENE solo puede registrar Estudiante o Visitante");
 }
 
 async function insertPerson(transaction: sql.Transaction, data: Create["person"], username: string) {
@@ -96,11 +136,13 @@ async function insertPerson(transaction: sql.Transaction, data: Create["person"]
   return result.recordset[0].idPersona as bigint;
 }
 
-export async function create(data: Create) {
+export async function create(data: Create, proseneContext = false) {
   const pool = await getDatabasePool();
   const transaction = new sql.Transaction(pool);
   try {
     await transaction.begin();
+    await assertProseneType(new sql.Request(transaction), data.beneficiary.idTipoBeneficiario, proseneContext);
+    await assertAccountAvailable(new sql.Request(transaction), data.beneficiary.numeroCuenta);
     const idPersona = await insertPerson(transaction, data.person, data.usuarioRegistro);
     const result = await new sql.Request(transaction)
       .input("idPersona", sql.BigInt, idPersona)
@@ -121,17 +163,19 @@ export async function create(data: Create) {
     return find(BigInt(result.recordset[0].idBeneficiario));
   } catch (error) {
     await transaction.rollback().catch(() => undefined);
-    return mapSqlError(error);
+    return mapBeneficiaryError(error);
   }
 }
 
-export async function update(id: bigint, data: Update) {
+export async function update(id: bigint, data: Update, proseneContext = false) {
   const current = await find(id);
   if (!current) return null;
   const pool = await getDatabasePool();
   const transaction = new sql.Transaction(pool);
   try {
     await transaction.begin();
+    await assertProseneType(new sql.Request(transaction), data.beneficiary.idTipoBeneficiario, proseneContext);
+    await assertAccountAvailable(new sql.Request(transaction), data.beneficiary.numeroCuenta, id);
     await new sql.Request(transaction)
       .input("idPersona", sql.BigInt, current.idPersona)
       .input("primerNombre", sql.NVarChar(80), data.person.primerNombre)
@@ -158,7 +202,7 @@ export async function update(id: bigint, data: Update) {
     return find(id);
   } catch (error) {
     await transaction.rollback().catch(() => undefined);
-    return mapSqlError(error);
+    return mapBeneficiaryError(error);
   }
 }
 
